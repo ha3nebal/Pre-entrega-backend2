@@ -1,15 +1,35 @@
-class User {
+import mongoose from "mongoose";
 
-    constructor() {
+const userSchema = new mongoose.Schema({
 
-        this.first_name = "";
-        this.last_name = "";
-        this.email = "";
-        this.password = "";
-        this.role = "user";
+    first_name: {
+        type: String,
+        required: true
+    },
 
+    last_name: {
+        type: String,
+        required: true
+    },
+
+    email: {
+        type: String,
+        unique: true,
+        required: true
+    },
+
+    password: {
+        type: String,
+        required: true
+    },
+
+    role: {
+        type: String,
+        default: "user"
     }
 
-}
+}, {
+    timestamps: true
+});
 
-export default User;
+export default mongoose.model("User", userSchema);

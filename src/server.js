@@ -1,8 +1,17 @@
 import app from "./app.js";
 import { config } from "./config/env.js";
+import { connectDB } from "./config/db.js";
 
-app.listen(config.PORT, () => {
+const startServer = async () => {
 
-    console.log(`Servidor ejecutándose en puerto ${config.PORT}`);
+    await connectDB();
 
-});
+    app.listen(config.PORT, () => {
+
+        console.log(`Servidor ejecutándose en puerto ${config.PORT}`);
+
+    });
+
+};
+
+startServer();

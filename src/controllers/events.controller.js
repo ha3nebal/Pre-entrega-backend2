@@ -1,8 +1,8 @@
 import { getAllEvents } from "../services/events.service.js";
 
-export const getEvents = (req, res) => {
+export const getEvents = async (req, res) => {
 
-    const events = getAllEvents();
+    const events = await getAllEvents();
 
     res.status(200).json({
         status: "success",

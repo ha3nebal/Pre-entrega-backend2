@@ -1,5 +1,5 @@
-export const getAllEvents = () => {
+import eventRepository from "../repositories/event.repository.js";
 
-    return [];
-
+export const getAllEvents = async () => {
+    return await eventRepository.getEvents();
 };
