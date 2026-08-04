@@ -4,6 +4,6 @@ export const getSession = (req, res) => {
 
     const session = getSessionInfo();
 
-    sendSuccess(res,data);
+    sendSuccess(res,session);
 
 };
