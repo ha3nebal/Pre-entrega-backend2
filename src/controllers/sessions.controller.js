@@ -4,6 +4,6 @@ export const getSession = (req, res) => {
 
     const session = getSessionInfo();
 
-    res.status(200).json(session);
+    sendSuccess(res,data);
 
 };

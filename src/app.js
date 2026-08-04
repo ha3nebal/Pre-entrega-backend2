@@ -8,11 +8,6 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 
 const app = express();
 
-app.use(notFound);
-
-app.use(errorHandler);
-
-
 
 app.use(express.json());
 
@@ -27,5 +22,8 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/events", eventsRouter);
 app.use("/api/sessions", sessionsRouter);
+
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;
