@@ -1,9 +1,18 @@
 import { getSessionInfo } from "../services/sessions.service.js";
+import { sendSuccess } from "../utils/response.js";
 
-export const getSession = (req, res) => {
+export const getSession = async (req, res, next) => {
 
-    const session = getSessionInfo();
+    try {
 
-    sendSuccess(res,session);
+        const session = await getSessionInfo();
+
+        sendSuccess(res, session);
+
+    } catch (error) {
+
+        next(error);
+
+    }
 
 };
