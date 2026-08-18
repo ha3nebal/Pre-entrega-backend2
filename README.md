@@ -39,11 +39,11 @@ Clonar el repositorio:
 
 
 ```bash
-git clone https://github.com/ha3nebal/Pre-entrega1-backend2.git
+git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
 
 Ingresar al directorio del proyecto:
 
-cd Pre-entrega1-backend2
+cd Pre-entrega-backend2
 
 Instalar las dependencias:
 
