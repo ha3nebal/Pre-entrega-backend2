@@ -1,130 +1,105 @@
 # Pre-entrega Backend 2
 
+API REST para la gestión de **eventos y usuarios**, desarrollada como parte del curso **Backend de Coderhouse**.
 
-## Descripción
+El proyecto utiliza una **arquitectura por capas** para separar responsabilidades y facilitar el mantenimiento y la escalabilidad de la aplicación.
 
-
-API REST desarrollada con Node.js y Express para la gestión de eventos y usuarios.
-
-
-Este proyecto corresponde a la **Pre-entrega 2** del curso **Backend** de **Coderhouse**.
-
-
-La aplicación utiliza una arquitectura por capas, separando rutas, controladores, servicios, repositorios, DAO y modelos. En esta entrega se incorpora el registro seguro de usuarios mediante validación, normalización de email, hash de contraseñas con bcrypt y persistencia en MongoDB Atlas.
-
+En esta segunda entrega se incorpora el **registro seguro de usuarios**, incluyendo validación de datos, normalización de email, hash de contraseñas con `bcrypt` y persistencia en **MongoDB Atlas**.
 
 ---
 
+## Tecnologías
 
-## Tecnologías utilizadas
-
-
-- Node.js
-- Express
-- JavaScript (ES Modules)
-- dotenv
-- Mongoose
-- MongoDB Atlas
-- bcrypt
-- Postman para pruebas de la API
-
+- **Node.js**
+- **Express**
+- **JavaScript / ES Modules**
+- **Mongoose**
+- **MongoDB Atlas**
+- **dotenv**
+- **bcrypt**
+- **Postman**
 
 ---
-
 
 ## Instalación
 
-
-Clonar el repositorio:
-
+### 1. Clonar el repositorio
 
 ```bash
 git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
+```
 
-Ingresar al directorio del proyecto:
+### 2. Ingresar al proyecto
 
+```bash
 cd Pre-entrega-backend2
+```
 
-Instalar las dependencias:
+### 3. Instalar dependencias
 
+```bash
 npm install
-Variables de entorno
+```
 
-Crear un archivo .env en la raíz del proyecto.
+---
 
-El archivo debe contener:
+## Configuración
 
+El proyecto utiliza variables de entorno mediante `dotenv`.
+
+Crear un archivo `.env` en la raíz del proyecto:
+
+```env
 PORT=8080
 NODE_ENV=development
 MONGO_URL=tu_uri_de_mongodb_atlas
 JWT_SECRET=tu_clave_secreta
+```
 
-La variable MONGO_URL debe contener la cadena de conexión proporcionada por MongoDB Atlas.
+### Variables disponibles
 
-También se incluye un archivo .env.example como referencia.
+| Variable | Descripción |
+|---|---|
+| `PORT` | Puerto en el que se ejecuta el servidor |
+| `NODE_ENV` | Entorno de ejecución |
+| `MONGO_URL` | URI de conexión a MongoDB Atlas |
+| `JWT_SECRET` | Clave utilizada para futuras funcionalidades de autenticación |
 
-Importante: el archivo .env contiene información sensible y no debe subirse al repositorio.
+También se incluye un archivo `.env.example` como referencia.
 
-Ejecución del proyecto
-Modo desarrollo
+> **Importante:** el archivo `.env` contiene información sensible y no debe subirse a GitHub.
+
+---
+
+## Ejecución
+
+### Desarrollo
+
+```bash
 npm run dev
-Modo producción
+```
+
+### Producción
+
+```bash
 npm start
+```
 
-El servidor se ejecuta utilizando el puerto definido en la variable de entorno PORT.
+Por defecto, el servidor se ejecuta en:
 
-Por defecto:
-
+```text
 http://localhost:8080
+```
 
-Estructura del proyecto
-src
-│
-├── app.js
-├── server.js
-│
-├── config
-│   ├── db.js
-│   └── env.js
-│
-├── controllers
-│   ├── events.controller.js
-│   └── sessions.controller.js
-│
-├── services
-│   ├── events.service.js
-│   └── sessions.service.js
-│
-├── repositories
-│   ├── event.repository.js
-│   └── user.repository.js
-│
-├── dao
-│   ├── EventDAO.js
-│   └── UserDAO.js
-│
-├── models
-│   ├── Event.js
-│   └── User.js
-│
-├── routes
-│   ├── events.router.js
-│   └── sessions.router.js
-│
-├── middlewares
-│   ├── auth.middleware.js
-│   ├── error.middleware.js
-│   └── notFound.middleware.js
-│
-└── utils
-    ├── constants.js
-    ├── logger.js
-    ├── hash.js
-    └── response.js
-Arquitectura
+El puerto se puede modificar mediante la variable `PORT`.
 
-El proyecto utiliza una arquitectura por capas para facilitar el mantenimiento, la reutilización del código y la escalabilidad.
+---
 
+# Arquitectura del proyecto
+
+La aplicación está organizada siguiendo una arquitectura por capas:
+
+```text
 Routes
    │
    ▼
@@ -144,99 +119,260 @@ Models
    │
    ▼
 MongoDB Atlas
+```
 
-Las funciones auxiliares reutilizables se encuentran en utils/, incluyendo el helper encargado del hash de contraseñas mediante bcrypt.
+### Responsabilidad de cada capa
 
-Rutas disponibles
-GET /api/health
+| Capa | Responsabilidad |
+|---|---|
+| `routes/` | Define los endpoints disponibles |
+| `controllers/` | Recibe las solicitudes HTTP y coordina las respuestas |
+| `services/` | Contiene la lógica de negocio |
+| `repositories/` | Abstrae el acceso a los datos |
+| `dao/` | Ejecuta las operaciones de persistencia |
+| `models/` | Define los esquemas y modelos de Mongoose |
+| `middlewares/` | Procesa solicitudes antes o después de las rutas |
+| `utils/` | Contiene funciones auxiliares reutilizables |
+| `config/` | Contiene la configuración de la aplicación y la conexión a MongoDB |
 
-Verifica que el servidor se encuentre en funcionamiento.
+---
 
-Respuesta
+# Estructura de carpetas
+
+```text
+Pre-entrega-backend2/
+│
+├── src/
+│   │
+│   ├── app.js
+│   ├── server.js
+│   │
+│   ├── config/
+│   │   ├── db.js
+│   │   └── env.js
+│   │
+│   ├── controllers/
+│   │   ├── events.controller.js
+│   │   └── sessions.controller.js
+│   │
+│   ├── services/
+│   │   ├── events.service.js
+│   │   └── sessions.service.js
+│   │
+│   ├── repositories/
+│   │   ├── event.repository.js
+│   │   └── user.repository.js
+│   │
+│   ├── dao/
+│   │   ├── EventDAO.js
+│   │   └── UserDAO.js
+│   │
+│   ├── models/
+│   │   ├── Event.js
+│   │   └── User.js
+│   │
+│   ├── routes/
+│   │   ├── events.router.js
+│   │   └── sessions.router.js
+│   │
+│   ├── middlewares/
+│   │   ├── auth.middleware.js
+│   │   ├── error.middleware.js
+│   │   └── notFound.middleware.js
+│   │
+│   └── utils/
+│       ├── constants.js
+│       ├── logger.js
+│       ├── hash.js
+│       └── response.js
+│
+├── .env.example
+├── .gitignore
+├── package.json
+├── package-lock.json
+└── README.md
+```
+
+---
+
+# API
+
+## Health Check
+
+### `GET /api/health`
+
+Comprueba que el servidor se encuentre activo.
+
+**Respuesta `200 OK`:**
+
+```json
 {
   "status": "ok",
   "message": "Servidor activo"
 }
-GET /api/events
+```
 
-Obtiene la lista de eventos registrados.
+---
 
-Respuesta
+# Events
+
+## `GET /api/events`
+
+Obtiene la lista de eventos.
+
+**Respuesta:**
+
+```json
 {
   "status": "success",
   "payload": []
 }
-GET /api/sessions
+```
+
+El módulo de eventos cuenta con una estructura preparada para trabajar mediante:
+
+```text
+Route
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Repository
+  ↓
+DAO
+  ↓
+Model
+  ↓
+MongoDB Atlas
+```
+
+---
+
+# Sessions
+
+## `GET /api/sessions`
 
 Ruta base del módulo de sesiones.
 
-Respuesta
+**Respuesta:**
+
+```json
 {
   "status": "success",
   "message": "Módulo de sesiones preparado."
 }
-Registro de usuarios
-POST /api/sessions/register
+```
 
-Registra un nuevo usuario en MongoDB Atlas.
+---
 
-El endpoint valida los datos recibidos, normaliza el email, verifica que no exista previamente, genera un hash seguro de la contraseña mediante bcrypt y guarda el usuario utilizando Mongoose.
+# Registro de usuarios
 
-Body
+## `POST /api/sessions/register`
+
+Registra un nuevo usuario.
+
+El proceso realiza:
+
+1. Validación de campos obligatorios.
+2. Validación del formato del email.
+3. Validación de la longitud mínima de la contraseña.
+4. Normalización del email.
+5. Comprobación de email duplicado.
+6. Hash de la contraseña mediante `bcrypt`.
+7. Persistencia del usuario en MongoDB Atlas.
+8. Respuesta sin incluir la contraseña.
+
+---
+
+## Body
+
+```json
 {
   "first_name": "Ana",
   "last_name": "Pérez",
   "email": "Ana@Mail.com ",
   "password": "Secreta123"
 }
-Campos requeridos
-Campo	Descripción
-first_name	Nombre del usuario
-last_name	Apellido del usuario
-email	Email válido
-password	Contraseña de mínimo 8 caracteres
+```
 
-El campo role no se recibe desde el body público del registro.
+### Campos requeridos
 
-Los usuarios registrados reciben automáticamente:
+| Campo | Descripción |
+|---|---|
+| `first_name` | Nombre del usuario |
+| `last_name` | Apellido del usuario |
+| `email` | Email válido |
+| `password` | Contraseña de mínimo 8 caracteres |
 
+El campo `role` **no debe enviarse desde el registro público**.
+
+El sistema asigna automáticamente:
+
+```text
 role: "user"
+```
 
-Los roles permitidos por el modelo son:
+Los roles definidos por el modelo son:
 
+```text
 user
 organizer
 admin
-Normalización del email
+```
 
-El email se normaliza antes de almacenarse:
+---
 
-Se eliminan espacios al inicio y al final.
-Se convierte a minúsculas.
+# Seguridad de contraseñas
+
+Las contraseñas **no se almacenan en texto plano**.
+
+Antes de persistir el usuario, la contraseña se procesa mediante `bcrypt`.
+
+Ejemplo de un hash almacenado:
+
+```text
+$2b$10$...
+```
+
+La contraseña tampoco se devuelve en la respuesta HTTP.
+
+El helper reutilizable encargado del hash se encuentra en:
+
+```text
+src/utils/hash.js
+```
+
+---
+
+# Normalización del email
+
+El email recibido es normalizado antes de almacenarse.
+
+Se realizan dos operaciones:
+
+- `trim`: elimina espacios al principio y al final.
+- `lowercase`: convierte el email a minúsculas.
 
 Por ejemplo:
 
+```text
 Ana@Mail.com 
+```
 
 se almacena como:
 
+```text
 ana@mail.com
-Seguridad de la contraseña
+```
 
-La contraseña nunca se almacena en texto plano.
+---
 
-Antes de guardar el usuario en MongoDB Atlas, la contraseña es procesada mediante bcrypt.
+# Respuesta exitosa
 
-Ejemplo del valor almacenado:
+### HTTP `201 Created`
 
-$2b$10$...
-
-La contraseña tampoco se incluye en la respuesta del endpoint.
-
-Respuesta exitosa
-
-HTTP 201 Created
-
+```json
 {
   "status": "success",
   "payload": {
@@ -247,112 +383,208 @@ HTTP 201 Created
     "role": "user"
   }
 }
+```
 
-La respuesta no contiene el campo password.
+> La respuesta no contiene el campo `password`.
 
-Campos faltantes
+---
 
-HTTP 400 Bad Request
+# Respuestas de error
 
-Ejemplo:
+## Campos faltantes
 
-{
-  "first_name": "Ana",
-  "email": "ana@mail.com",
-  "password": "Secreta123"
-}
+### HTTP `400 Bad Request`
 
-Respuesta:
-
+```json
 {
   "status": "error",
   "message": "Faltan campos obligatorios"
 }
-Email inválido
+```
 
-HTTP 400 Bad Request
+---
 
-Ejemplo:
+## Email inválido
 
-{
-  "first_name": "Ana",
-  "last_name": "Pérez",
-  "email": "ana-mail",
-  "password": "Secreta123"
-}
+### HTTP `400 Bad Request`
 
-Respuesta:
-
+```json
 {
   "status": "error",
   "message": "El formato del email no es válido"
 }
-Email ya registrado
+```
 
-HTTP 409 Conflict
+---
 
-Si el email ya existe en la base de datos:
+## Email ya registrado
 
+### HTTP `409 Conflict`
+
+```json
 {
   "status": "error",
   "message": "El email ya está registrado"
 }
-Persistencia
+```
 
-La aplicación utiliza MongoDB Atlas como sistema de persistencia.
+---
 
-Mongoose se utiliza como ODM para definir los modelos y realizar las operaciones sobre MongoDB.
+# Modelo User
 
-El modelo User contiene:
+El modelo `User` contiene los siguientes campos:
 
-first_name
-last_name
-email
-password
-role
+| Campo | Descripción |
+|---|---|
+| `first_name` | Nombre |
+| `last_name` | Apellido |
+| `email` | Email del usuario |
+| `password` | Contraseña almacenada como hash |
+| `role` | Rol del usuario |
 
-El modelo Event contiene:
+El campo `role` tiene como valor predeterminado:
 
-title
-description
-date
-location
-capacity
-Pruebas realizadas
+```text
+user
+```
 
-Antes de entregar se deben comprobar los siguientes casos:
+Los valores permitidos son:
 
-Registro exitoso de un usuario.
-Registro con campos faltantes.
-Registro con email inválido.
-Registro con email previamente registrado.
-Verificación de que la contraseña se almacena hasheada en MongoDB Atlas.
-Verificación de que la contraseña no aparece en la respuesta del endpoint.
-Verificación de que el email se almacena normalizado.
-Verificación de que el rol se asigna automáticamente como user.
+```text
+user
+organizer
+admin
+```
 
-Las pruebas de los endpoints se realizan mediante Postman.
+El rol no puede ser manipulado mediante el registro público.
 
-Estado del proyecto
+---
 
-Actualmente esta versión incluye:
+# Modelo Event
 
-Arquitectura REST por capas.
-Configuración de Express.
-Uso de módulos ES Modules.
-Variables de entorno mediante dotenv.
-Conexión con MongoDB Atlas mediante Mongoose.
-Modelo User con roles y validaciones básicas.
-Modelo Event.
-DAO y Repository para usuarios y eventos.
-CRUD de eventos.
-Registro de usuarios.
-Validación de datos del registro.
-Normalización de email.
-Hash de contraseñas mediante bcrypt.
-Prevención de registros con emails duplicados.
-Respuesta de registro sin contraseña.
-Middleware de manejo de errores.
-Estructura preparada para autenticación.
+El modelo `Event` contiene:
 
-Las próximas entregas incorporarán nuevas funcionalidades de autenticación y autorización, incluyendo login, JWT, manejo de sesiones y protección de rutas.
+| Campo | Descripción |
+|---|---|
+| `title` | Título del evento |
+| `description` | Descripción |
+| `date` | Fecha del evento |
+| `location` | Ubicación |
+| `capacity` | Capacidad del evento |
+
+---
+
+# Persistencia
+
+La aplicación utiliza **MongoDB Atlas** como base de datos.
+
+**Mongoose** funciona como ODM y permite definir los modelos y realizar las operaciones de persistencia.
+
+El acceso a los datos se encuentra separado mediante:
+
+```text
+Repository
+    ↓
+DAO
+    ↓
+Mongoose Model
+    ↓
+MongoDB Atlas
+```
+
+---
+
+# Flujo del registro
+
+El registro de usuarios respeta la arquitectura definida para el proyecto:
+
+```text
+POST /api/sessions/register
+              │
+              ▼
+      sessions.router.js
+              │
+              ▼
+     sessions.controller.js
+              │
+              ▼
+      sessions.service.js
+              │
+              ├──────► utils/hash.js
+              │              │
+              │              ▼
+              │            bcrypt
+              │
+              ▼
+      user.repository.js
+              │
+              ▼
+          UserDAO.js
+              │
+              ▼
+           User.js
+              │
+              ▼
+        MongoDB Atlas
+```
+
+---
+
+# Pruebas
+
+Los endpoints pueden probarse utilizando **Postman**.
+
+Antes de entregar se deben verificar los siguientes casos:
+
+- [ ] Registro exitoso.
+- [ ] Campos obligatorios faltantes.
+- [ ] Email con formato inválido.
+- [ ] Email ya registrado.
+- [ ] Email normalizado correctamente.
+- [ ] Contraseña almacenada como hash en MongoDB Atlas.
+- [ ] Contraseña ausente en la respuesta.
+- [ ] Rol asignado automáticamente como `user`.
+
+---
+
+# Estado del proyecto
+
+Esta versión incluye:
+
+- Arquitectura REST por capas.
+- Configuración de Express.
+- Uso de ES Modules.
+- Variables de entorno mediante `dotenv`.
+- Conexión con MongoDB Atlas mediante Mongoose.
+- Modelos `User` y `Event`.
+- DAO y Repository.
+- CRUD de eventos.
+- Registro de usuarios.
+- Validación de datos.
+- Normalización de email.
+- Hash de contraseñas mediante bcrypt.
+- Prevención de registros con emails duplicados.
+- Respuesta de registro sin contraseña.
+- Middleware de manejo de errores.
+- Estructura preparada para futuras funcionalidades de autenticación y autorización.
+
+---
+
+# Próximas funcionalidades
+
+En las siguientes entregas se incorporarán progresivamente funcionalidades como:
+
+- Login de usuarios.
+- Autenticación mediante JWT.
+- Protección de rutas.
+- Manejo de sesiones.
+- Autorización según roles.
+- Nuevas funcionalidades para la gestión de eventos.
+
+---
+
+## Autor
+
+**Anibal**
+
+Proyecto desarrollado para el curso **Backend - Coderhouse**.
