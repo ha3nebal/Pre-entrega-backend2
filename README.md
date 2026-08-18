@@ -76,6 +76,7 @@ El servidor se ejecuta utilizando el puerto definido en la variable de entorno P
 Por defecto:
 
 http://localhost:8080
+
 Estructura del proyecto
 src
 │
