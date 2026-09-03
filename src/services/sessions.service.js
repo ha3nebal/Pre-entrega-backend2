@@ -1,5 +1,11 @@
 import userRepository from "../repositories/user.repository.js";
-import { hashPassword } from "../utils/hash.js";
+
+import {
+    hashPassword,
+    comparePassword
+} from "../utils/hash.js";
+
+import { generateToken } from "../utils/jwt.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -87,4 +93,60 @@ export const registerUser = async (userData) => {
         email: user.email,
         role: user.role
     };
+};
+
+export const loginUser = async (email, password) => {
+
+    // Validar que lleguen las credenciales
+    if (!email || !password) {
+
+        const error = new Error("Credenciales inválidas");
+        error.statusCode = 401;
+
+        throw error;
+    }
+
+    // Normalizar email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Buscar usuario
+    const user = await userRepository.getUserByEmail(
+        normalizedEmail
+    );
+
+    // Si el usuario no existe
+    if (!user) {
+
+        const error = new Error("Credenciales inválidas");
+        error.statusCode = 401;
+
+        throw error;
+    }
+
+    // Comparar contraseña recibida con el hash almacenado
+    const passwordValid = await comparePassword(
+        password,
+        user.password
+    );
+
+    // Si la contraseña no coincide
+    if (!passwordValid) {
+
+        const error = new Error("Credenciales inválidas");
+        error.statusCode = 401;
+
+        throw error;
+    }
+
+    // Información mínima que tendrá el JWT
+    const payload = {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role
+    };
+
+    // Generar JWT
+    const token = generateToken(payload);
+
+    return token;
 };
