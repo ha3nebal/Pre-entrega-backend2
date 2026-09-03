@@ -1,5 +1,5 @@
 {
-  "name": "pre-entrega1",
+  "name": "pre-entrega-backend2",
   "version": "1.0.0",
   "description": "API REST para plataforma de gestión de eventos",
   "main": "src/server.js",
