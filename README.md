@@ -1,149 +1,90 @@
-# Pre-entrega Backend 2
+# Pre-entrega Backend 2 — Autenticación con JWT y Cookies
 
-API REST para la gestión de **eventos y usuarios**, desarrollada como parte del curso **Backend de Coderhouse**.
+API REST desarrollada con **Node.js, Express, MongoDB y Mongoose** para la gestión de eventos y usuarios.
 
-El proyecto utiliza una **arquitectura por capas** para separar responsabilidades y facilitar el mantenimiento y la escalabilidad de la aplicación.
+Este proyecto corresponde a la **Pre-entrega 3** del curso **Backend de Coderhouse** y continúa el desarrollo realizado en las entregas anteriores.
 
-En esta segunda entrega se incorpora el **registro seguro de usuarios**, incluyendo validación de datos, normalización de email, hash de contraseñas con `bcrypt` y persistencia en **MongoDB Atlas**.
+En esta etapa se incorpora la autenticación de usuarios mediante:
+
+- Registro seguro de usuarios.
+- Hash de contraseñas con `bcrypt`.
+- Login con validación de credenciales.
+- Generación de JWT.
+- Almacenamiento del JWT en una cookie HTTP Only.
+- Middleware de autenticación.
+- Ruta protegida `/current`.
+- Logout mediante eliminación de la cookie.
+- Persistencia en MongoDB Atlas.
 
 ---
 
-## Tecnologías
+## Tecnologías utilizadas
 
 - **Node.js**
 - **Express**
-- **JavaScript / ES Modules**
+- **JavaScript — ES Modules**
 - **Mongoose**
 - **MongoDB Atlas**
 - **dotenv**
 - **bcrypt**
-- **Postman**
+- **jsonwebtoken**
+- **cookie-parser**
+- **Nodemon**
+- **Postman** para pruebas de la API
 
 ---
 
-## Instalación
+## Arquitectura
 
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
-```
-
-### 2. Ingresar al proyecto
-
-```bash
-cd Pre-entrega-backend2
-```
-
-### 3. Instalar dependencias
-
-```bash
-npm install
-```
-
----
-
-## Configuración
-
-El proyecto utiliza variables de entorno mediante `dotenv`.
-
-Crear un archivo `.env` en la raíz del proyecto:
-
-```env
-PORT=8080
-NODE_ENV=development
-MONGO_URL=tu_uri_de_mongodb_atlas
-JWT_SECRET=tu_clave_secreta
-```
-
-### Variables disponibles
-
-| Variable | Descripción |
-|---|---|
-| `PORT` | Puerto en el que se ejecuta el servidor |
-| `NODE_ENV` | Entorno de ejecución |
-| `MONGO_URL` | URI de conexión a MongoDB Atlas |
-| `JWT_SECRET` | Clave utilizada para futuras funcionalidades de autenticación |
-
-También se incluye un archivo `.env.example` como referencia.
-
-> **Importante:** el archivo `.env` contiene información sensible y no debe subirse a GitHub.
-
----
-
-## Ejecución
-
-### Desarrollo
-
-```bash
-npm run dev
-```
-
-### Producción
-
-```bash
-npm start
-```
-
-Por defecto, el servidor se ejecuta en:
+El proyecto utiliza una arquitectura por capas para separar responsabilidades y facilitar el mantenimiento y la escalabilidad.
 
 ```text
-http://localhost:8080
+Cliente / Postman
+       │
+       ▼
+     Routes
+       │
+       ▼
+  Controllers
+       │
+       ▼
+    Services
+       │
+       ▼
+ Repositories
+       │
+       ▼
+      DAO
+       │
+       ▼
+    Models
+       │
+       ▼
+ MongoDB Atlas
 ```
 
-El puerto se puede modificar mediante la variable `PORT`.
-
----
-
-# Arquitectura del proyecto
-
-La aplicación está organizada siguiendo una arquitectura por capas:
+Las funciones reutilizables relacionadas con seguridad se encuentran en `utils/`:
 
 ```text
-Routes
-   │
-   ▼
-Controllers
-   │
-   ▼
-Services
-   │
-   ▼
-Repositories
-   │
-   ▼
-DAO
-   │
-   ▼
-Models
-   │
-   ▼
-MongoDB Atlas
+utils/
+├── hash.js   → hash y comparación de contraseñas con bcrypt
+└── jwt.js    → generación y verificación de JWT
 ```
 
-### Responsabilidad de cada capa
+El middleware de autenticación se encuentra en:
 
-| Capa | Responsabilidad |
-|---|---|
-| `routes/` | Define los endpoints disponibles |
-| `controllers/` | Recibe las solicitudes HTTP y coordina las respuestas |
-| `services/` | Contiene la lógica de negocio |
-| `repositories/` | Abstrae el acceso a los datos |
-| `dao/` | Ejecuta las operaciones de persistencia |
-| `models/` | Define los esquemas y modelos de Mongoose |
-| `middlewares/` | Procesa solicitudes antes o después de las rutas |
-| `utils/` | Contiene funciones auxiliares reutilizables |
-| `config/` | Contiene la configuración de la aplicación y la conexión a MongoDB |
+```text
+src/middlewares/auth.middleware.js
+```
 
 ---
 
-# Estructura de carpetas
+## Estructura del proyecto
 
 ```text
 Pre-entrega-backend2/
 │
 ├── src/
-│   │
 │   ├── app.js
 │   ├── server.js
 │   │
@@ -182,8 +123,9 @@ Pre-entrega-backend2/
 │   │
 │   └── utils/
 │       ├── constants.js
-│       ├── logger.js
 │       ├── hash.js
+│       ├── jwt.js
+│       ├── logger.js
 │       └── response.js
 │
 ├── .env.example
@@ -195,15 +137,169 @@ Pre-entrega-backend2/
 
 ---
 
-# API
+## Instalación
 
-## Health Check
+Clonar el repositorio:
 
-### `GET /api/health`
+```bash
+git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
+```
 
-Comprueba que el servidor se encuentre activo.
+Ingresar al directorio:
 
-**Respuesta `200 OK`:**
+```bash
+cd Pre-entrega-backend2
+```
+
+Instalar las dependencias:
+
+```bash
+npm install
+```
+
+---
+
+## Variables de entorno
+
+Crear un archivo `.env` en la raíz del proyecto.
+
+Ejemplo:
+
+```env
+PORT=8080
+NODE_ENV=development
+MONGO_URL=tu_uri_de_mongodb_atlas
+JWT_SECRET=tu_clave_secreta
+JWT_EXPIRES_IN=1h
+```
+
+### Variables
+
+| Variable | Descripción |
+|---|---|
+| `PORT` | Puerto donde se ejecuta el servidor. |
+| `NODE_ENV` | Entorno de ejecución (`development` o `production`). |
+| `MONGO_URL` | URI de conexión a MongoDB Atlas. |
+| `JWT_SECRET` | Clave secreta utilizada para firmar y verificar los JWT. |
+| `JWT_EXPIRES_IN` | Tiempo de expiración del JWT. |
+
+También se incluye `.env.example` como referencia.
+
+> **Importante:** `.env` contiene información sensible y no debe subirse al repositorio.
+
+---
+
+## Ejecución
+
+### Modo desarrollo
+
+```bash
+npm run dev
+```
+
+### Modo producción
+
+```bash
+npm start
+```
+
+El servidor se ejecuta por defecto en:
+
+```text
+http://localhost:8080
+```
+
+---
+
+# Modelos
+
+## User
+
+El modelo `User` contiene:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `first_name` | String | Nombre del usuario. |
+| `last_name` | String | Apellido del usuario. |
+| `email` | String | Email único y normalizado. |
+| `password` | String | Contraseña almacenada como hash bcrypt. |
+| `role` | String | Rol del usuario. |
+
+Roles permitidos:
+
+```text
+user
+organizer
+admin
+```
+
+El rol tiene como valor por defecto:
+
+```text
+user
+```
+
+El registro público no permite establecer el rol desde el body.
+
+---
+
+## Event
+
+El modelo `Event` contiene:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `title` | String | Título del evento. |
+| `description` | String | Descripción del evento. |
+| `date` | Date | Fecha del evento. |
+| `location` | String | Ubicación del evento. |
+| `capacity` | Number | Capacidad máxima. |
+| `organizer` | String | Organizador del evento. |
+| `status` | String | Estado del evento. |
+
+Estados permitidos:
+
+```text
+ACTIVE
+CANCELLED
+FINISHED
+```
+
+---
+
+# Rutas de la API
+
+Base URL:
+
+```text
+http://localhost:8080
+```
+
+## Resumen de endpoints
+
+| Método | Ruta | Descripción | Protección |
+|---|---|---|---|
+| `GET` | `/api/health` | Verifica el estado del servidor. | Pública |
+| `GET` | `/api/events` | Obtiene todos los eventos. | Pública |
+| `GET` | `/api/events/:id` | Obtiene un evento por ID. | Pública |
+| `POST` | `/api/events` | Crea un evento. | Pública |
+| `PUT` | `/api/events/:id` | Actualiza un evento. | Pública |
+| `DELETE` | `/api/events/:id` | Elimina un evento. | Pública |
+| `GET` | `/api/sessions` | Información del módulo de sesiones. | Pública |
+| `POST` | `/api/sessions/register` | Registra un usuario. | Pública |
+| `POST` | `/api/sessions/login` | Inicia sesión y genera JWT. | Pública |
+| `GET` | `/api/sessions/current` | Obtiene el usuario autenticado. | 🔒 JWT |
+| `POST` | `/api/sessions/logout` | Cierra la sesión y elimina la cookie. | Pública |
+
+---
+
+# Health Check
+
+## GET `/api/health`
+
+Verifica que el servidor se encuentre funcionando.
+
+### Response — `200 OK`
 
 ```json
 {
@@ -214,13 +310,13 @@ Comprueba que el servidor se encuentre activo.
 
 ---
 
-# Events
+# Eventos
 
-## `GET /api/events`
+## GET `/api/events`
 
-Obtiene la lista de eventos.
+Obtiene todos los eventos almacenados en MongoDB Atlas.
 
-**Respuesta:**
+### Response — `200 OK`
 
 ```json
 {
@@ -229,38 +325,148 @@ Obtiene la lista de eventos.
 }
 ```
 
-El módulo de eventos cuenta con una estructura preparada para trabajar mediante:
-
-```text
-Route
-  ↓
-Controller
-  ↓
-Service
-  ↓
-Repository
-  ↓
-DAO
-  ↓
-Model
-  ↓
-MongoDB Atlas
-```
+Si existen eventos, `payload` contiene los documentos recuperados desde MongoDB.
 
 ---
 
-# Sessions
+## GET `/api/events/:id`
 
-## `GET /api/sessions`
+Obtiene un evento específico mediante su ID.
 
-Ruta base del módulo de sesiones.
+Ejemplo:
 
-**Respuesta:**
+```text
+GET http://localhost:8080/api/events/665f2a...
+```
+
+### Response — `200 OK`
 
 ```json
 {
   "status": "success",
-  "message": "Módulo de sesiones preparado."
+  "payload": {
+    "_id": "665f2a...",
+    "title": "Evento de ejemplo",
+    "description": "Descripción del evento",
+    "date": "2026-09-10T18:00:00.000Z",
+    "location": "Viña del Mar",
+    "capacity": 100,
+    "organizer": "Administrador",
+    "status": "ACTIVE"
+  }
+}
+```
+
+---
+
+## POST `/api/events`
+
+Crea un nuevo evento.
+
+### Request
+
+```json
+{
+  "title": "Evento de ejemplo",
+  "description": "Descripción del evento",
+  "date": "2026-09-10T18:00:00.000Z",
+  "location": "Viña del Mar",
+  "capacity": 100
+}
+```
+
+### Response — `201 Created`
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "_id": "665f2a...",
+    "title": "Evento de ejemplo",
+    "description": "Descripción del evento",
+    "date": "2026-09-10T18:00:00.000Z",
+    "location": "Viña del Mar",
+    "capacity": 100,
+    "organizer": "Administrador",
+    "status": "ACTIVE"
+  }
+}
+```
+
+---
+
+## PUT `/api/events/:id`
+
+Actualiza un evento existente.
+
+Ejemplo:
+
+```text
+PUT http://localhost:8080/api/events/665f2a...
+```
+
+### Request
+
+```json
+{
+  "title": "Evento actualizado",
+  "capacity": 150
+}
+```
+
+### Response — `200 OK`
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "_id": "665f2a...",
+    "title": "Evento actualizado",
+    "capacity": 150
+  }
+}
+```
+
+---
+
+## DELETE `/api/events/:id`
+
+Elimina un evento existente.
+
+Ejemplo:
+
+```text
+DELETE http://localhost:8080/api/events/665f2a...
+```
+
+### Response — `200 OK`
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "_id": "665f2a..."
+  }
+}
+```
+
+---
+
+# Sesiones y autenticación
+
+## GET `/api/sessions`
+
+Ruta base del módulo de sesiones.
+
+### Response — `200 OK`
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "status": "success",
+    "message": "Módulo de sesiones preparado."
+  }
 }
 ```
 
@@ -268,24 +474,22 @@ Ruta base del módulo de sesiones.
 
 # Registro de usuarios
 
-## `POST /api/sessions/register`
+## POST `/api/sessions/register`
 
 Registra un nuevo usuario.
 
 El proceso realiza:
 
 1. Validación de campos obligatorios.
-2. Validación del formato del email.
-3. Validación de la longitud mínima de la contraseña.
-4. Normalización del email.
-5. Comprobación de email duplicado.
-6. Hash de la contraseña mediante `bcrypt`.
-7. Persistencia del usuario en MongoDB Atlas.
-8. Respuesta sin incluir la contraseña.
+2. Normalización de nombre, apellido y email.
+3. Validación del formato del email.
+4. Validación de longitud mínima de contraseña.
+5. Verificación de email duplicado.
+6. Hash de la contraseña mediante bcrypt.
+7. Persistencia en MongoDB Atlas.
+8. Respuesta sin incluir `password`.
 
----
-
-## Body
+### Request
 
 ```json
 {
@@ -296,81 +500,22 @@ El proceso realiza:
 }
 ```
 
-### Campos requeridos
+### Campos obligatorios
 
-| Campo | Descripción |
-|---|---|
-| `first_name` | Nombre del usuario |
-| `last_name` | Apellido del usuario |
-| `email` | Email válido |
-| `password` | Contraseña de mínimo 8 caracteres |
+- `first_name`
+- `last_name`
+- `email`
+- `password`
 
-El campo `role` **no debe enviarse desde el registro público**.
+El campo `role` **no debe enviarse para controlar el rol del usuario**.
 
-El sistema asigna automáticamente:
+El modelo asigna automáticamente:
 
 ```text
 role: "user"
 ```
 
-Los roles definidos por el modelo son:
-
-```text
-user
-organizer
-admin
-```
-
----
-
-# Seguridad de contraseñas
-
-Las contraseñas **no se almacenan en texto plano**.
-
-Antes de persistir el usuario, la contraseña se procesa mediante `bcrypt`.
-
-Ejemplo de un hash almacenado:
-
-```text
-$2b$10$...
-```
-
-La contraseña tampoco se devuelve en la respuesta HTTP.
-
-El helper reutilizable encargado del hash se encuentra en:
-
-```text
-src/utils/hash.js
-```
-
----
-
-# Normalización del email
-
-El email recibido es normalizado antes de almacenarse.
-
-Se realizan dos operaciones:
-
-- `trim`: elimina espacios al principio y al final.
-- `lowercase`: convierte el email a minúsculas.
-
-Por ejemplo:
-
-```text
-Ana@Mail.com 
-```
-
-se almacena como:
-
-```text
-ana@mail.com
-```
-
----
-
-# Respuesta exitosa
-
-### HTTP `201 Created`
+### Response — `201 Created`
 
 ```json
 {
@@ -385,28 +530,9 @@ ana@mail.com
 }
 ```
 
-> La respuesta no contiene el campo `password`.
+La respuesta no contiene `password`.
 
----
-
-# Respuestas de error
-
-## Campos faltantes
-
-### HTTP `400 Bad Request`
-
-```json
-{
-  "status": "error",
-  "message": "Faltan campos obligatorios"
-}
-```
-
----
-
-## Email inválido
-
-### HTTP `400 Bad Request`
+### Email inválido — `400 Bad Request`
 
 ```json
 {
@@ -415,11 +541,16 @@ ana@mail.com
 }
 ```
 
----
+### Campos faltantes — `400 Bad Request`
 
-## Email ya registrado
+```json
+{
+  "status": "error",
+  "message": "Faltan campos obligatorios"
+}
+```
 
-### HTTP `409 Conflict`
+### Email duplicado — `409 Conflict`
 
 ```json
 {
@@ -430,161 +561,505 @@ ana@mail.com
 
 ---
 
-# Modelo User
+# Login
 
-El modelo `User` contiene los siguientes campos:
+## POST `/api/sessions/login`
 
-| Campo | Descripción |
-|---|---|
-| `first_name` | Nombre |
-| `last_name` | Apellido |
-| `email` | Email del usuario |
-| `password` | Contraseña almacenada como hash |
-| `role` | Rol del usuario |
+Autentica un usuario utilizando email y contraseña.
 
-El campo `role` tiene como valor predeterminado:
+El proceso realiza:
 
-```text
-user
+1. Valida la presencia de `email` y `password`.
+2. Normaliza el email.
+3. Busca el usuario mediante Repository y DAO.
+4. Compara la contraseña con bcrypt.
+5. Genera un JWT si las credenciales son correctas.
+6. Guarda el JWT en la cookie `currentUser`.
+
+### Request
+
+```json
+{
+  "email": "ana@mail.com",
+  "password": "Secreta123"
+}
 ```
 
-Los valores permitidos son:
+### Response — `200 OK`
 
-```text
-user
-organizer
-admin
+```json
+{
+  "status": "success",
+  "message": "Login correcto"
+}
 ```
 
-El rol no puede ser manipulado mediante el registro público.
+Además, la respuesta establece la cookie:
+
+```text
+currentUser
+```
+
+### Configuración de la cookie
+
+La cookie utiliza:
+
+```text
+httpOnly: true
+sameSite: "lax"
+maxAge: 3600000
+secure: true solamente en producción
+```
+
+El JWT tiene una expiración configurable mediante:
+
+```env
+JWT_EXPIRES_IN=1h
+```
+
+### Credenciales inválidas — `401 Unauthorized`
+
+Si el email no existe o la contraseña no coincide, se responde siempre con el mismo mensaje:
+
+```json
+{
+  "status": "error",
+  "message": "Credenciales inválidas"
+}
+```
+
+Esto evita revelar información sobre la existencia de usuarios.
 
 ---
 
-# Modelo Event
+# JWT
 
-El modelo `Event` contiene:
-
-| Campo | Descripción |
-|---|---|
-| `title` | Título del evento |
-| `description` | Descripción |
-| `date` | Fecha del evento |
-| `location` | Ubicación |
-| `capacity` | Capacidad del evento |
-
----
-
-# Persistencia
-
-La aplicación utiliza **MongoDB Atlas** como base de datos.
-
-**Mongoose** funciona como ODM y permite definir los modelos y realizar las operaciones de persistencia.
-
-El acceso a los datos se encuentra separado mediante:
+El JWT se genera en:
 
 ```text
-Repository
-    ↓
-DAO
-    ↓
-Mongoose Model
-    ↓
-MongoDB Atlas
+src/utils/jwt.js
+```
+
+El payload contiene únicamente la información mínima requerida:
+
+```json
+{
+  "id": "665f2a...",
+  "email": "ana@mail.com",
+  "role": "user"
+}
+```
+
+No contiene:
+
+```text
+password
+first_name
+last_name
+```
+
+La firma utiliza `JWT_SECRET` desde las variables de entorno.
+
+La expiración utiliza:
+
+```env
+JWT_EXPIRES_IN=1h
 ```
 
 ---
 
-# Flujo del registro
+# Ruta protegida
 
-El registro de usuarios respeta la arquitectura definida para el proyecto:
+## GET `/api/sessions/current`
+
+Devuelve la información del usuario autenticado.
+
+La ruta está protegida mediante:
+
+```text
+src/middlewares/auth.middleware.js
+```
+
+El middleware:
+
+1. Lee la cookie `currentUser`.
+2. Verifica el JWT.
+3. Valida su firma y expiración.
+4. Guarda el payload en `req.user`.
+5. Permite continuar al controller.
+
+### Request
+
+```text
+GET http://localhost:8080/api/sessions/current
+```
+
+No es necesario enviar el JWT manualmente en un header. La autenticación se realiza mediante la cookie.
+
+### Response — `200 OK`
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "id": "665f2a...",
+    "email": "ana@mail.com",
+    "role": "user"
+  }
+}
+```
+
+### Sin cookie o token inválido — `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "No autenticado"
+}
+```
+
+La contraseña nunca forma parte de esta respuesta.
+
+---
+
+# Logout
+
+## POST `/api/sessions/logout`
+
+Cierra la sesión eliminando la cookie `currentUser`.
+
+### Request
+
+```text
+POST http://localhost:8080/api/sessions/logout
+```
+
+No requiere Body.
+
+### Response — `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Sesión cerrada"
+}
+```
+
+Después del logout, una petición a:
+
+```text
+GET /api/sessions/current
+```
+
+debe responder:
+
+```http
+401 Unauthorized
+```
+
+```json
+{
+  "status": "error",
+  "message": "No autenticado"
+}
+```
+
+---
+
+# Flujo de autenticación
+
+```text
+┌──────────────┐
+│   REGISTER   │
+└──────┬───────┘
+       │
+       ▼
+ MongoDB Atlas
+       │
+       │
+       ▼
+┌──────────────┐
+│    LOGIN     │
+└──────┬───────┘
+       │
+       ▼
+ bcrypt.compare()
+       │
+       ▼
+ generateToken()
+       │
+       ▼
+ Cookie currentUser
+       │
+       ▼
+┌──────────────┐
+│   /current   │
+└──────┬───────┘
+       │
+       ▼
+auth.middleware
+       │
+       ▼
+verifyToken()
+       │
+       ▼
+req.user
+       │
+       ▼
+{id, email, role}
+       │
+       ▼
+┌──────────────┐
+│    LOGOUT    │
+└──────┬───────┘
+       │
+       ▼
+clearCookie()
+       │
+       ▼
+/current → 401
+```
+
+---
+
+# Seguridad
+
+El proyecto aplica las siguientes medidas:
+
+- Contraseñas almacenadas únicamente mediante hash `bcrypt`.
+- Nunca se devuelve `password` en las respuestas.
+- El `password` no forma parte del JWT.
+- El JWT contiene solamente `id`, `email` y `role`.
+- `JWT_SECRET` se obtiene desde variables de entorno.
+- La cookie de autenticación utiliza `httpOnly`.
+- La cookie utiliza `sameSite: "lax"`.
+- `secure` se activa solamente en producción.
+- Los errores de login utilizan un mensaje genérico.
+- `.env` y credenciales privadas no deben subirse al repositorio.
+
+---
+
+# Pruebas realizadas
+
+La funcionalidad de autenticación fue comprobada mediante Postman.
+
+## Casos de prueba
+
+### 1. Registro exitoso
 
 ```text
 POST /api/sessions/register
-              │
-              ▼
-      sessions.router.js
-              │
-              ▼
-     sessions.controller.js
-              │
-              ▼
-      sessions.service.js
-              │
-              ├──────► utils/hash.js
-              │              │
-              │              ▼
-              │            bcrypt
-              │
-              ▼
-      user.repository.js
-              │
-              ▼
-          UserDAO.js
-              │
-              ▼
-           User.js
-              │
-              ▼
-        MongoDB Atlas
+```
+
+Resultado esperado:
+
+```text
+201 Created
+```
+
+### 2. Campos faltantes
+
+```text
+POST /api/sessions/register
+```
+
+Resultado esperado:
+
+```text
+400 Bad Request
+```
+
+### 3. Email inválido
+
+```text
+POST /api/sessions/register
+```
+
+Resultado esperado:
+
+```text
+400 Bad Request
+```
+
+### 4. Email duplicado
+
+```text
+POST /api/sessions/register
+```
+
+Resultado esperado:
+
+```text
+409 Conflict
+```
+
+### 5. Login exitoso
+
+```text
+POST /api/sessions/login
+```
+
+Resultado esperado:
+
+```text
+200 OK
+```
+
+y cookie:
+
+```text
+currentUser
+```
+
+### 6. Login con email inexistente
+
+Resultado esperado:
+
+```text
+401 Unauthorized
+Credenciales inválidas
+```
+
+### 7. Login con contraseña incorrecta
+
+Resultado esperado:
+
+```text
+401 Unauthorized
+Credenciales inválidas
+```
+
+### 8. `/current` con cookie válida
+
+Resultado esperado:
+
+```text
+200 OK
+```
+
+con:
+
+```text
+id
+email
+role
+```
+
+### 9. `/current` sin cookie
+
+Resultado esperado:
+
+```text
+401 Unauthorized
+No autenticado
+```
+
+### 10. `/current` con token manipulado
+
+Resultado esperado:
+
+```text
+401 Unauthorized
+No autenticado
+```
+
+### 11. Logout
+
+Resultado esperado:
+
+```text
+200 OK
+Sesión cerrada
+```
+
+### 12. `/current` después del logout
+
+Resultado esperado:
+
+```text
+401 Unauthorized
+No autenticado
 ```
 
 ---
 
-# Pruebas
+# Secuencia completa de autenticación
 
-Los endpoints pueden probarse utilizando **Postman**.
+La secuencia principal probada es:
 
-Antes de entregar se deben verificar los siguientes casos:
-
-- [ ] Registro exitoso.
-- [ ] Campos obligatorios faltantes.
-- [ ] Email con formato inválido.
-- [ ] Email ya registrado.
-- [ ] Email normalizado correctamente.
-- [ ] Contraseña almacenada como hash en MongoDB Atlas.
-- [ ] Contraseña ausente en la respuesta.
-- [ ] Rol asignado automáticamente como `user`.
+```text
+Registro
+   ↓
+Login
+   ↓
+Cookie currentUser
+   ↓
+/current → 200
+   ↓
+Logout
+   ↓
+Cookie eliminada
+   ↓
+/current → 401
+```
 
 ---
 
-# Estado del proyecto
+# Git y control de versiones
 
-Esta versión incluye:
+El desarrollo se realiza mediante commits progresivos, describiendo los cambios realizados en cada etapa.
+
+Ejemplos:
+
+```bash
+git add .
+git commit -m "feat: implement JWT authentication flow"
+```
+
+```bash
+git add .
+git commit -m "feat: implement session logout"
+```
+
+Los commits permiten mantener un historial del desarrollo incremental del proyecto.
+
+---
+
+# Estado actual del proyecto
+
+Esta entrega incluye:
 
 - Arquitectura REST por capas.
-- Configuración de Express.
-- Uso de ES Modules.
-- Variables de entorno mediante `dotenv`.
-- Conexión con MongoDB Atlas mediante Mongoose.
-- Modelos `User` y `Event`.
-- DAO y Repository.
+- Express configurado.
+- ES Modules.
+- Variables de entorno mediante dotenv.
+- Conexión a MongoDB Atlas mediante Mongoose.
+- Modelo `User`.
+- Modelo `Event`.
+- DAO y Repository para usuarios y eventos.
 - CRUD de eventos.
 - Registro de usuarios.
 - Validación de datos.
 - Normalización de email.
 - Hash de contraseñas mediante bcrypt.
-- Prevención de registros con emails duplicados.
-- Respuesta de registro sin contraseña.
-- Middleware de manejo de errores.
-- Estructura preparada para futuras funcionalidades de autenticación y autorización.
-
----
-
-# Próximas funcionalidades
-
-En las siguientes entregas se incorporarán progresivamente funcionalidades como:
-
+- Prevención de emails duplicados.
 - Login de usuarios.
-- Autenticación mediante JWT.
-- Protección de rutas.
-- Manejo de sesiones.
-- Autorización según roles.
-- Nuevas funcionalidades para la gestión de eventos.
+- Comparación segura de contraseñas.
+- Generación de JWT.
+- Cookie `currentUser` HTTP Only.
+- Middleware de autenticación.
+- Ruta protegida `/api/sessions/current`.
+- Logout.
+- Manejo de errores.
+- `.env.example`.
+- Documentación de endpoints.
+- Pruebas mediante Postman.
 
 ---
 
-## Autor
+## Repositorio
 
-**Anibal**
+Repositorio público del proyecto:
 
-Proyecto desarrollado para el curso **Backend - Coderhouse**.
+```text
+https://github.com/ha3nebal/Pre-entrega-backend2
