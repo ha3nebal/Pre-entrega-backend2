@@ -29,6 +29,7 @@ app.use("/api/events", eventsRouter);
 
 app.use("/api/sessions", sessionsRouter);
 
+// Siempre al final
 app.use(notFound);
 
 app.use(errorHandler);
