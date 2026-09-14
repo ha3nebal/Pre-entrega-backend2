@@ -1,10 +1,10 @@
 import {
-    getSessionInfo,
-    registerUser,
-    loginUser
+    getSessionInfo
 } from "../services/sessions.service.js";
 
 import { sendSuccess } from "../utils/response.js";
+
+import { generateToken } from "../utils/jwt.js";
 
 export const getSession = async (req, res, next) => {
 
@@ -22,13 +22,16 @@ export const getSession = async (req, res, next) => {
 
 };
 
+
 export const register = async (req, res, next) => {
 
     try {
 
-        const user = await registerUser(req.body);
-
-        sendSuccess(res, user, 201);
+        sendSuccess(
+            res,
+            req.user,
+            201
+        );
 
     } catch (error) {
 
@@ -38,16 +41,24 @@ export const register = async (req, res, next) => {
 
 };
 
+
 export const login = async (req, res, next) => {
 
     try {
 
-        const { email, password } = req.body;
+        const payload = {
 
-        const token = await loginUser(
-            email,
-            password
-        );
+            id: req.user._id.toString(),
+
+            email: req.user.email,
+
+            role: req.user.role
+
+        };
+
+
+        const token = generateToken(payload);
+
 
         res.cookie(
             "currentUser",
@@ -60,6 +71,7 @@ export const login = async (req, res, next) => {
             }
         );
 
+
         res.status(200).json({
             status: "success",
             message: "Login correcto"
@@ -68,9 +80,10 @@ export const login = async (req, res, next) => {
     } catch (error) {
 
         next(error);
-
+        
     }
 };
+
 
 export const currentUser = (req, res) => {
 
@@ -80,6 +93,7 @@ export const currentUser = (req, res) => {
     });
 
 };
+
 
 export const logout = (req, res) => {
 
