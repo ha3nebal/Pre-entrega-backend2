@@ -8,18 +8,39 @@ import {
     logout
 } from "../controllers/sessions.controller.js";
 
-import { auth } from "../middlewares/auth.middleware.js";
+import passport from "passport";
 
 const router = Router();
 
 router.get("/", getSession);
 
-router.post("/register", register);
+router.post(
+    "/register",
+    passport.authenticate("register", {
+        session: false
+    }),
+    register
+);
 
-router.post("/login", login);
+router.post(
+    "/login",
+    passport.authenticate("login", {
+        session: false
+    }),
+    login
+);
 
-router.get("/current", auth, currentUser);
+router.get(
+    "/current",
+    passport.authenticate("current", {
+        session: false
+    }),
+    currentUser
+);
 
-router.post("/logout", logout);
+router.post(
+    "/logout",
+    logout
+);
 
 export default router;
