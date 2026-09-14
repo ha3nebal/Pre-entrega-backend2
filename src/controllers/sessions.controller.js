@@ -1,5 +1,5 @@
 import {
-    getSessionInfo
+    getSessionInfo,
 } from "../services/sessions.service.js";
 
 import { sendSuccess } from "../utils/response.js";
@@ -80,7 +80,7 @@ export const login = async (req, res, next) => {
     } catch (error) {
 
         next(error);
-        
+
     }
 };
 
