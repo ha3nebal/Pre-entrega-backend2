@@ -1,4 +1,5 @@
 import { Router } from "express";
+import passport from "passport";
 
 import {
     getSession,
@@ -8,7 +9,7 @@ import {
     logout
 } from "../controllers/sessions.controller.js";
 
-import passport from "passport";
+
 
 const router = Router();
 
