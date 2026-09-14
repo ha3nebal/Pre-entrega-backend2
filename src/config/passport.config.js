@@ -1,23 +1,20 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
+
 
 import userRepository from "../repositories/user.repository.js";
 
 import {
-    hashPassword,
-    comparePassword
+    hashPassword
 } from "../utils/hash.js";
 
-import { config } from "./env.js";
+
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
 
-// ======================================================
-// STRATEGY: REGISTER
-// ======================================================
+
 
 passport.use(
     "register",
@@ -37,7 +34,7 @@ passport.use(
                     last_name
                 } = req.body;
 
-                // Validación de campos obligatorios
+                // Validar campos obligatorios
                 if (
                     !first_name ||
                     !last_name ||
@@ -53,8 +50,7 @@ passport.use(
                     return done(error);
                 }
 
-
-                // Normalización
+                // Normalizar datos
                 const normalizedFirstName =
                     first_name.trim();
 
@@ -64,8 +60,7 @@ passport.use(
                 const normalizedEmail =
                     email.trim().toLowerCase();
 
-
-                // Validación email
+                // Validar email
                 if (!EMAIL_REGEX.test(normalizedEmail)) {
 
                     const error = new Error(
@@ -77,8 +72,7 @@ passport.use(
                     return done(error);
                 }
 
-
-                // Validación password
+                // Validar contraseña
                 if (password.length < MIN_PASSWORD_LENGTH) {
 
                     const error = new Error(
@@ -90,8 +84,7 @@ passport.use(
                     return done(error);
                 }
 
-
-                // Verificar email existente
+                // Verificar email duplicado
                 const existingUser =
                     await userRepository.getUserByEmail(
                         normalizedEmail
@@ -108,8 +101,7 @@ passport.use(
                     return done(error);
                 }
 
-
-                // Hash de contraseña
+                // Generar hash de contraseña
                 const hashedPassword =
                     await hashPassword(password);
 
@@ -128,8 +120,7 @@ passport.use(
 
                     });
 
-
-                // Usuario seguro para req.user
+                // Usuario seguro
                 const safeUser = {
 
                     id: user._id.toString(),
@@ -158,149 +149,6 @@ passport.use(
 );
 
 
-// ======================================================
-// STRATEGY: LOGIN
-// ======================================================
 
-passport.use(
-    "login",
-    new LocalStrategy(
-        {
-            usernameField: "email",
-            passwordField: "password"
-        },
-
-        async (email, password, done) => {
-
-            try {
-
-                if (!email || !password) {
-
-                    const error = new Error(
-                        "Credenciales inválidas"
-                    );
-
-                    error.statusCode = 401;
-
-                    return done(error);
-                }
-
-
-                const normalizedEmail =
-                    email.trim().toLowerCase();
-
-
-                const user =
-                    await userRepository.getUserByEmail(
-                        normalizedEmail
-                    );
-
-
-                if (!user) {
-
-                    const error = new Error(
-                        "Credenciales inválidas"
-                    );
-
-                    error.statusCode = 401;
-
-                    return done(error);
-                }
-
-
-                const passwordValid =
-                    await comparePassword(
-                        password,
-                        user.password
-                    );
-
-
-                if (!passwordValid) {
-
-                    const error = new Error(
-                        "Credenciales inválidas"
-                    );
-
-                    error.statusCode = 401;
-
-                    return done(error);
-                }
-
-
-                return done(null, user);
-
-            } catch (error) {
-
-                return done(error);
-
-            }
-
-        }
-    )
-);
-
-
-// ======================================================
-// STRATEGY: CURRENT
-// ======================================================
-
-passport.use(
-    "current",
-    new JwtStrategy(
-        {
-            jwtFromRequest: ExtractJwt.fromExtractors([
-                (req) => {
-
-                    return req.cookies?.currentUser || null;
-
-                }
-            ]),
-
-            secretOrKey: config.JWT_SECRET
-        },
-
-        async (payload, done) => {
-
-            try {
-
-                if (
-                    !payload ||
-                    !payload.id ||
-                    !payload.email ||
-                    !payload.role
-                ) {
-
-                    const error = new Error(
-                        "No autenticado"
-                    );
-
-                    error.statusCode = 401;
-
-                    return done(error);
-                }
-
-
-                const safeUser = {
-
-                    id: payload.id,
-
-                    email: payload.email,
-
-                    role: payload.role
-
-                };
-
-
-                return done(null, safeUser);
-
-            } catch (error) {
-
-                return done(error);
-
-            }
-
-        }
-    )
-);
 
 export default passport;
