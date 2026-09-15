@@ -5,10 +5,21 @@ import {
     comparePassword
 } from "../utils/hash.js";
 
+import {
+    toUserDTO,
+    toAuthenticatedUserDTO
+} from "../dto/user.dto.js";
+
 import { generateToken } from "../utils/jwt.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+
+const createServiceError = (message, statusCode) => {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    return error;
+};
 
 export const getSessionInfo = () => {
     return {
@@ -18,7 +29,7 @@ export const getSessionInfo = () => {
 };
 
 export const registerUser = async (userData) => {
-
+    
     const {
         first_name,
         last_name,
@@ -28,11 +39,10 @@ export const registerUser = async (userData) => {
 
     // Validar campos obligatorios
     if (!first_name || !last_name || !email || !password) {
-
-        const error = new Error("Faltan campos obligatorios");
-        error.statusCode = 400;
-
-        throw error;
+        throw createServiceError(
+            "Faltan campos obligatorios",
+            400
+        );
     }
 
     // Normalizar datos
@@ -40,38 +50,45 @@ export const registerUser = async (userData) => {
     const normalizedLastName = last_name.trim();
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Validar que los campos no queden vacíos
+    if (
+        !normalizedFirstName ||
+        !normalizedLastName ||
+        !normalizedEmail
+    ) {
+        throw createServiceError(
+            "Los campos obligatorios no pueden estar vacíos",
+            400
+        );
+    }
+
     // Validar email
     if (!EMAIL_REGEX.test(normalizedEmail)) {
-
-        const error = new Error("El formato del email no es válido");
-        error.statusCode = 400;
-
-        throw error;
+        throw createServiceError(
+            "El formato del email no es válido",
+            400
+        );
     }
 
     // Validar longitud de contraseña
     if (password.length < MIN_PASSWORD_LENGTH) {
-
-        const error = new Error(
-            `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`
+        throw createServiceError(
+            `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
+            400
         );
-
-        error.statusCode = 400;
-
-        throw error;
     }
 
     // Verificar si el email ya existe
-    const existingUser = await userRepository.getUserByEmail(
-        normalizedEmail
-    );
+    const existingUser =
+        await userRepository.getUserByEmail(
+            normalizedEmail
+        );
 
     if (existingUser) {
-
-        const error = new Error("El email ya está registrado");
-        error.statusCode = 409;
-
-        throw error;
+        throw createServiceError(
+            "El email ya está registrado",
+            409
+        );
     }
 
     // Hashear contraseña
@@ -85,60 +102,51 @@ export const registerUser = async (userData) => {
         password: hashedPassword
     });
 
-    // Nunca devolver password
-    return {
-        id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        role: user.role
-    };
+    // Transformar mediante DTO
+    return toUserDTO(user);
 };
 
 export const loginUser = async (email, password) => {
-
-    // Validar que lleguen las credenciales
+    // Validar credenciales
     if (!email || !password) {
-
-        const error = new Error("Credenciales inválidas");
-        error.statusCode = 401;
-
-        throw error;
+        throw createServiceError(
+            "Credenciales inválidas",
+            401
+        );
     }
 
     // Normalizar email
     const normalizedEmail = email.trim().toLowerCase();
 
     // Buscar usuario
-    const user = await userRepository.getUserByEmail(
-        normalizedEmail
-    );
+    const user =
+        await userRepository.getUserByEmail(
+            normalizedEmail
+        );
 
-    // Si el usuario no existe
+
     if (!user) {
-
-        const error = new Error("Credenciales inválidas");
-        error.statusCode = 401;
-
-        throw error;
+        throw createServiceError(
+            "Credenciales inválidas",
+            401
+        );
     }
 
-    // Comparar contraseña recibida con el hash almacenado
+    // Comparar contraseña
     const passwordValid = await comparePassword(
         password,
         user.password
     );
 
-    // Si la contraseña no coincide
+
     if (!passwordValid) {
-
-        const error = new Error("Credenciales inválidas");
-        error.statusCode = 401;
-
-        throw error;
+        throw createServiceError(
+            "Credenciales inválidas",
+            401
+        );
     }
 
-    // Información mínima que tendrá el JWT
+    // Información mínima para el JWT
     const payload = {
         id: user._id.toString(),
         email: user.email,
@@ -148,5 +156,8 @@ export const loginUser = async (email, password) => {
     // Generar JWT
     const token = generateToken(payload);
 
-    return token;
+    return {
+        token,
+        user: toAuthenticatedUserDTO(user)
+    };
 };

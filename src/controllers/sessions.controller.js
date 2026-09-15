@@ -1,10 +1,14 @@
 import {
-    getSessionInfo,
+    getSessionInfo
 } from "../services/sessions.service.js";
+
+import {
+    toAuthenticatedUserDTO
+} from "../dto/user.dto.js";
 
 import { sendSuccess } from "../utils/response.js";
 
-import { generateToken } from "../utils/jwt.js";
+
 
 export const getSession = async (req, res, next) => {
 
@@ -43,22 +47,8 @@ export const register = async (req, res, next) => {
 
 
 export const login = async (req, res, next) => {
-
     try {
-
-        const payload = {
-
-            id: req.user._id.toString(),
-
-            email: req.user.email,
-
-            role: req.user.role
-
-        };
-
-
-        const token = generateToken(payload);
-
+        const { token, user } = req.user;
 
         res.cookie(
             "currentUser",
@@ -71,12 +61,12 @@ export const login = async (req, res, next) => {
             }
         );
 
-
-        res.status(200).json({
-            status: "success",
-            message: "Login correcto"
-        });
-
+        sendSuccess(
+            res,
+            {
+                message: "Login correcto"
+            }
+        );
     } catch (error) {
 
         next(error);
@@ -86,12 +76,10 @@ export const login = async (req, res, next) => {
 
 
 export const currentUser = (req, res) => {
-
-    res.status(200).json({
-        status: "success",
-        payload: req.user
-    });
-
+    sendSuccess(
+        res,
+        toAuthenticatedUserDTO(req.user)
+    );
 };
 
 
