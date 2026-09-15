@@ -1,13 +1,15 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 
 import userRepository from "../repositories/user.repository.js";
 
 import {
-    hashPassword
+    hashPassword,
+    comparePassword
 } from "../utils/hash.js";
 
+import { config } from "./env.js";
 
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -144,6 +146,113 @@ passport.use(
 
             }
 
+        }
+    )
+);
+
+passport.use(
+    "login",
+    new LocalStrategy(
+        {
+            usernameField: "email",
+            passwordField: "password"
+        },
+
+        async (email, password, done) => {
+
+            try {
+
+                const normalizedEmail =
+                    email?.trim().toLowerCase();
+
+                // Buscar usuario
+                const user =
+                    await userRepository.getUserByEmail(
+                        normalizedEmail
+                    );
+
+                // Credenciales inválidas
+                if (!user) {
+
+                    const error = new Error(
+                        "Credenciales inválidas"
+                    );
+
+                    error.statusCode = 401;
+
+                    return done(error);
+                }
+
+                // Comparar contraseña
+                const isValidPassword =
+                    await comparePassword(
+                        password,
+                        user.password
+                    );
+
+                if (!isValidPassword) {
+
+                    const error = new Error(
+                        "Credenciales inválidas"
+                    );
+
+                    error.statusCode = 401;
+
+                    return done(error);
+                }
+
+                // Login correcto
+                return done(null, user);
+
+            } catch (error) {
+
+                return done(error);
+
+            }
+        }
+    )
+);
+
+passport.use(
+    "current",
+    new JwtStrategy(
+        {
+            jwtFromRequest: ExtractJwt.fromExtractors([
+                (req) => req.cookies?.currentUser || null
+            ]),
+            secretOrKey: config.JWT_SECRET
+        },
+
+        async (payload, done) => {
+
+            try {
+
+                if (
+                    !payload ||
+                    !payload.id ||
+                    !payload.email ||
+                    !payload.role
+                ) {
+                    const error = new Error(
+                        "No autenticado"
+                    );
+
+                    error.statusCode = 401;
+
+                    return done(error);
+                }
+
+                return done(null, {
+                    id: payload.id,
+                    email: payload.email,
+                    role: payload.role
+                });
+
+            } catch (error) {
+
+                return done(error);
+
+            }
         }
     )
 );

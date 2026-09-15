@@ -33,9 +33,31 @@ router.post(
 
 router.get(
     "/current",
-    passport.authenticate("current", {
-        session: false
-    }),
+    (req, res, next) => {
+        passport.authenticate(
+            "current",
+            {
+                session: false
+            },
+            (error, user, info) => {
+
+                if (error) {
+                    return next(error);
+                }
+
+                if (!user) {
+                    const authError = new Error("No autenticado");
+                    authError.statusCode = 401;
+
+                    return next(authError);
+                }
+
+                req.user = user;
+
+                next();
+            }
+        )(req, res, next);
+    },
     currentUser
 );
 
