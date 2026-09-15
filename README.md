@@ -1,48 +1,44 @@
-# Pre-entrega Backend 2 — Autenticación con JWT y Cookies
+# Pre-entrega Backend 2 — Autenticación con Passport.js
 
-API REST desarrollada con **Node.js, Express, MongoDB y Mongoose** para la gestión de eventos y usuarios.
+API REST desarrollada con **Node.js, Express, MongoDB y Mongoose** para la gestión de usuarios y eventos.
 
-Este proyecto corresponde a la **Pre-entrega 3** del curso **Backend de Coderhouse** y continúa el desarrollo realizado en las entregas anteriores.
+Este proyecto corresponde a la **Pre-entrega 4** del curso **Backend de Coderhouse**. En esta etapa se refactoriza el sistema de autenticación de la Pre-entrega 3 incorporando **Passport.js** para centralizar las estrategias de registro, login y usuario actual.
 
-En esta etapa se incorpora la autenticación de usuarios mediante:
-
-- Registro seguro de usuarios.
-- Hash de contraseñas con `bcrypt`.
-- Login con validación de credenciales.
-- Generación de JWT.
-- Almacenamiento del JWT en una cookie HTTP Only.
-- Middleware de autenticación.
-- Ruta protegida `/current`.
-- Logout mediante eliminación de la cookie.
-- Persistencia en MongoDB Atlas.
+El comportamiento externo de la API se mantiene: **las rutas y respuestas principales no cambian**. El cambio corresponde principalmente a la organización interna de la autenticación.
 
 ---
 
 ## Tecnologías utilizadas
 
-- **Node.js**
-- **Express**
-- **JavaScript — ES Modules**
-- **Mongoose**
-- **MongoDB Atlas**
-- **dotenv**
-- **bcrypt**
-- **jsonwebtoken**
-- **cookie-parser**
-- **Nodemon**
-- **Postman** para pruebas de la API
+- Node.js
+- Express
+- JavaScript ES Modules
+- MongoDB Atlas
+- Mongoose
+- Passport.js
+- passport-local
+- passport-jwt
+- bcrypt
+- jsonwebtoken
+- cookie-parser
+- dotenv
+- Nodemon
+- Postman
 
 ---
 
-## Arquitectura
+# Arquitectura
 
-El proyecto utiliza una arquitectura por capas para separar responsabilidades y facilitar el mantenimiento y la escalabilidad.
+El proyecto utiliza una arquitectura por capas para separar responsabilidades:
 
 ```text
 Cliente / Postman
        │
        ▼
      Routes
+       │
+       ▼
+ Passport Strategies
        │
        ▼
   Controllers
@@ -63,23 +59,29 @@ Cliente / Postman
  MongoDB Atlas
 ```
 
-Las funciones reutilizables relacionadas con seguridad se encuentran en `utils/`:
+La configuración de las estrategias de Passport se encuentra centralizada en:
 
 ```text
-utils/
-├── hash.js   → hash y comparación de contraseñas con bcrypt
-└── jwt.js    → generación y verificación de JWT
+src/config/passport.config.js
 ```
 
-El middleware de autenticación se encuentra en:
+La generación y verificación de JWT continúa separada en:
 
 ```text
-src/middlewares/auth.middleware.js
+src/utils/jwt.js
 ```
+
+El hash y comparación de contraseñas se mantienen en:
+
+```text
+src/utils/hash.js
+```
+
+Passport se inicializa en `app.js`, pero las estrategias no se definen dentro de este archivo.
 
 ---
 
-## Estructura del proyecto
+# Estructura del proyecto
 
 ```text
 Pre-entrega-backend2/
@@ -90,7 +92,8 @@ Pre-entrega-backend2/
 │   │
 │   ├── config/
 │   │   ├── db.js
-│   │   └── env.js
+│   │   ├── env.js
+│   │   └── passport.config.js
 │   │
 │   ├── controllers/
 │   │   ├── events.controller.js
@@ -137,7 +140,7 @@ Pre-entrega-backend2/
 
 ---
 
-## Instalación
+# Instalación
 
 Clonar el repositorio:
 
@@ -145,7 +148,7 @@ Clonar el repositorio:
 git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
 ```
 
-Ingresar al directorio:
+Ingresar al proyecto:
 
 ```bash
 cd Pre-entrega-backend2
@@ -157,9 +160,15 @@ Instalar las dependencias:
 npm install
 ```
 
+Las dependencias utilizadas para Passport son:
+
+```bash
+npm install passport passport-local passport-jwt
+```
+
 ---
 
-## Variables de entorno
+# Variables de entorno
 
 Crear un archivo `.env` en la raíz del proyecto.
 
@@ -173,37 +182,58 @@ JWT_SECRET=tu_clave_secreta
 JWT_EXPIRES_IN=1h
 ```
 
-### Variables
+## Variables
 
 | Variable | Descripción |
 |---|---|
-| `PORT` | Puerto donde se ejecuta el servidor. |
-| `NODE_ENV` | Entorno de ejecución (`development` o `production`). |
+| `PORT` | Puerto utilizado por el servidor. |
+| `NODE_ENV` | Entorno de ejecución. |
 | `MONGO_URL` | URI de conexión a MongoDB Atlas. |
-| `JWT_SECRET` | Clave secreta utilizada para firmar y verificar los JWT. |
+| `JWT_SECRET` | Clave utilizada para firmar y verificar los JWT. |
 | `JWT_EXPIRES_IN` | Tiempo de expiración del JWT. |
 
-También se incluye `.env.example` como referencia.
+El proyecto incluye:
 
-> **Importante:** `.env` contiene información sensible y no debe subirse al repositorio.
+```text
+.env.example
+```
+
+como referencia.
+
+### Seguridad
+
+El archivo:
+
+```text
+.env
+```
+
+no debe subirse al repositorio.
+
+Tampoco deben publicarse:
+
+- Credenciales de MongoDB.
+- Claves JWT.
+- Contraseñas.
+- Otros secretos de configuración.
 
 ---
 
-## Ejecución
+# Ejecución
 
-### Modo desarrollo
+Modo desarrollo:
 
 ```bash
 npm run dev
 ```
 
-### Modo producción
+Modo producción:
 
 ```bash
 npm start
 ```
 
-El servidor se ejecuta por defecto en:
+Por defecto, la API queda disponible en:
 
 ```text
 http://localhost:8080
@@ -211,21 +241,78 @@ http://localhost:8080
 
 ---
 
-# Modelos
+# Passport.js
 
-## User
+La Pre-entrega 4 incorpora Passport.js para centralizar la autenticación.
 
-El modelo `User` contiene:
+Passport se inicializa en:
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `first_name` | String | Nombre del usuario. |
-| `last_name` | String | Apellido del usuario. |
-| `email` | String | Email único y normalizado. |
-| `password` | String | Contraseña almacenada como hash bcrypt. |
-| `role` | String | Rol del usuario. |
+```text
+src/app.js
+```
 
-Roles permitidos:
+mediante:
+
+```js
+app.use(passport.initialize());
+```
+
+Las estrategias están centralizadas en:
+
+```text
+src/config/passport.config.js
+```
+
+Actualmente se implementan tres estrategias:
+
+```text
+register
+login
+current
+```
+
+No se utiliza `passport.session()` porque la autenticación de la API es **stateless**, basada en JWT almacenado en una cookie HTTP Only.
+
+---
+
+# Estrategia `register`
+
+La estrategia:
+
+```text
+register
+```
+
+se utiliza para:
+
+```http
+POST /api/sessions/register
+```
+
+La lógica de registro se encuentra dentro de la estrategia de Passport.
+
+La estrategia realiza:
+
+1. Validación de campos obligatorios.
+2. Normalización de nombre y apellido.
+3. Normalización del email.
+4. Validación del formato del email.
+5. Validación de la longitud mínima de la contraseña.
+6. Comprobación de email duplicado.
+7. Hash de contraseña mediante `bcrypt`.
+8. Creación del usuario mediante el repository.
+9. Utilización del rol por defecto definido en el modelo.
+10. Exclusión de la contraseña del usuario que queda disponible para la respuesta.
+
+La ruta delega la autenticación mediante:
+
+```js
+passport.authenticate("register", {
+    session: false
+})
+```
+
+El rol no se recibe directamente desde el registro. El modelo `User` define:
 
 ```text
 user
@@ -233,420 +320,82 @@ organizer
 admin
 ```
 
-El rol tiene como valor por defecto:
+y utiliza:
 
 ```text
 user
 ```
 
-El registro público no permite establecer el rol desde el body.
+como rol por defecto.
 
 ---
 
-## Event
+# Estrategia `login`
 
-El modelo `Event` contiene:
-
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `title` | String | Título del evento. |
-| `description` | String | Descripción del evento. |
-| `date` | Date | Fecha del evento. |
-| `location` | String | Ubicación del evento. |
-| `capacity` | Number | Capacidad máxima. |
-| `organizer` | String | Organizador del evento. |
-| `status` | String | Estado del evento. |
-
-Estados permitidos:
+La estrategia:
 
 ```text
-ACTIVE
-CANCELLED
-FINISHED
+login
 ```
 
----
+se utiliza para:
 
-# Rutas de la API
+```http
+POST /api/sessions/login
+```
 
-Base URL:
+La estrategia se encarga de:
+
+1. Recibir email y contraseña.
+2. Normalizar el email.
+3. Buscar el usuario.
+4. Comparar la contraseña mediante `bcrypt`.
+5. Validar las credenciales.
+6. Dejar el usuario autenticado disponible en `req.user`.
+
+Las credenciales inválidas mantienen una respuesta genérica:
 
 ```text
-http://localhost:8080
+Credenciales inválidas
 ```
 
-## Resumen de endpoints
-
-| Método | Ruta | Descripción | Protección |
-|---|---|---|---|
-| `GET` | `/api/health` | Verifica el estado del servidor. | Pública |
-| `GET` | `/api/events` | Obtiene todos los eventos. | Pública |
-| `GET` | `/api/events/:id` | Obtiene un evento por ID. | Pública |
-| `POST` | `/api/events` | Crea un evento. | Pública |
-| `PUT` | `/api/events/:id` | Actualiza un evento. | Pública |
-| `DELETE` | `/api/events/:id` | Elimina un evento. | Pública |
-| `GET` | `/api/sessions` | Información del módulo de sesiones. | Pública |
-| `POST` | `/api/sessions/register` | Registra un usuario. | Pública |
-| `POST` | `/api/sessions/login` | Inicia sesión y genera JWT. | Pública |
-| `GET` | `/api/sessions/current` | Obtiene el usuario autenticado. | 🔒 JWT |
-| `POST` | `/api/sessions/logout` | Cierra la sesión y elimina la cookie. | Pública |
-
----
-
-# Health Check
-
-## GET `/api/health`
-
-Verifica que el servidor se encuentre funcionando.
-
-### Response — `200 OK`
-
-```json
-{
-  "status": "ok",
-  "message": "Servidor activo"
-}
-```
-
----
-
-# Eventos
-
-## GET `/api/events`
-
-Obtiene todos los eventos almacenados en MongoDB Atlas.
-
-### Response — `200 OK`
-
-```json
-{
-  "status": "success",
-  "payload": []
-}
-```
-
-Si existen eventos, `payload` contiene los documentos recuperados desde MongoDB.
-
----
-
-## GET `/api/events/:id`
-
-Obtiene un evento específico mediante su ID.
-
-Ejemplo:
+con HTTP:
 
 ```text
-GET http://localhost:8080/api/events/665f2a...
+401 Unauthorized
 ```
 
-### Response — `200 OK`
+## Generación del JWT
 
-```json
-{
-  "status": "success",
-  "payload": {
-    "_id": "665f2a...",
-    "title": "Evento de ejemplo",
-    "description": "Descripción del evento",
-    "date": "2026-09-10T18:00:00.000Z",
-    "location": "Viña del Mar",
-    "capacity": 100,
-    "organizer": "Administrador",
-    "status": "ACTIVE"
-  }
-}
-```
+La estrategia `login` **no genera el JWT**.
 
----
-
-## POST `/api/events`
-
-Crea un nuevo evento.
-
-### Request
-
-```json
-{
-  "title": "Evento de ejemplo",
-  "description": "Descripción del evento",
-  "date": "2026-09-10T18:00:00.000Z",
-  "location": "Viña del Mar",
-  "capacity": 100
-}
-```
-
-### Response — `201 Created`
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "_id": "665f2a...",
-    "title": "Evento de ejemplo",
-    "description": "Descripción del evento",
-    "date": "2026-09-10T18:00:00.000Z",
-    "location": "Viña del Mar",
-    "capacity": 100,
-    "organizer": "Administrador",
-    "status": "ACTIVE"
-  }
-}
-```
-
----
-
-## PUT `/api/events/:id`
-
-Actualiza un evento existente.
-
-Ejemplo:
+Después de una autenticación exitosa:
 
 ```text
-PUT http://localhost:8080/api/events/665f2a...
+Passport
+   ↓
+req.user
+   ↓
+Controller
+   ↓
+generateToken()
+   ↓
+cookie currentUser
 ```
 
-### Request
-
-```json
-{
-  "title": "Evento actualizado",
-  "capacity": 150
-}
-```
-
-### Response — `200 OK`
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "_id": "665f2a...",
-    "title": "Evento actualizado",
-    "capacity": 150
-  }
-}
-```
-
----
-
-## DELETE `/api/events/:id`
-
-Elimina un evento existente.
-
-Ejemplo:
-
-```text
-DELETE http://localhost:8080/api/events/665f2a...
-```
-
-### Response — `200 OK`
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "_id": "665f2a..."
-  }
-}
-```
-
----
-
-# Sesiones y autenticación
-
-## GET `/api/sessions`
-
-Ruta base del módulo de sesiones.
-
-### Response — `200 OK`
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "status": "success",
-    "message": "Módulo de sesiones preparado."
-  }
-}
-```
-
----
-
-# Registro de usuarios
-
-## POST `/api/sessions/register`
-
-Registra un nuevo usuario.
-
-El proceso realiza:
-
-1. Validación de campos obligatorios.
-2. Normalización de nombre, apellido y email.
-3. Validación del formato del email.
-4. Validación de longitud mínima de contraseña.
-5. Verificación de email duplicado.
-6. Hash de la contraseña mediante bcrypt.
-7. Persistencia en MongoDB Atlas.
-8. Respuesta sin incluir `password`.
-
-### Request
-
-```json
-{
-  "first_name": "Ana",
-  "last_name": "Pérez",
-  "email": "Ana@Mail.com ",
-  "password": "Secreta123"
-}
-```
-
-### Campos obligatorios
-
-- `first_name`
-- `last_name`
-- `email`
-- `password`
-
-El campo `role` **no debe enviarse para controlar el rol del usuario**.
-
-El modelo asigna automáticamente:
-
-```text
-role: "user"
-```
-
-### Response — `201 Created`
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "id": "665f2a...",
-    "first_name": "Ana",
-    "last_name": "Pérez",
-    "email": "ana@mail.com",
-    "role": "user"
-  }
-}
-```
-
-La respuesta no contiene `password`.
-
-### Email inválido — `400 Bad Request`
-
-```json
-{
-  "status": "error",
-  "message": "El formato del email no es válido"
-}
-```
-
-### Campos faltantes — `400 Bad Request`
-
-```json
-{
-  "status": "error",
-  "message": "Faltan campos obligatorios"
-}
-```
-
-### Email duplicado — `409 Conflict`
-
-```json
-{
-  "status": "error",
-  "message": "El email ya está registrado"
-}
-```
-
----
-
-# Login
-
-## POST `/api/sessions/login`
-
-Autentica un usuario utilizando email y contraseña.
-
-El proceso realiza:
-
-1. Valida la presencia de `email` y `password`.
-2. Normaliza el email.
-3. Busca el usuario mediante Repository y DAO.
-4. Compara la contraseña con bcrypt.
-5. Genera un JWT si las credenciales son correctas.
-6. Guarda el JWT en la cookie `currentUser`.
-
-### Request
-
-```json
-{
-  "email": "ana@mail.com",
-  "password": "Secreta123"
-}
-```
-
-### Response — `200 OK`
-
-```json
-{
-  "status": "success",
-  "message": "Login correcto"
-}
-```
-
-Además, la respuesta establece la cookie:
-
-```text
-currentUser
-```
-
-### Configuración de la cookie
-
-La cookie utiliza:
-
-```text
-httpOnly: true
-sameSite: "lax"
-maxAge: 3600000
-secure: true solamente en producción
-```
-
-El JWT tiene una expiración configurable mediante:
-
-```env
-JWT_EXPIRES_IN=1h
-```
-
-### Credenciales inválidas — `401 Unauthorized`
-
-Si el email no existe o la contraseña no coincide, se responde siempre con el mismo mensaje:
-
-```json
-{
-  "status": "error",
-  "message": "Credenciales inválidas"
-}
-```
-
-Esto evita revelar información sobre la existencia de usuarios.
-
----
-
-# JWT
-
-El JWT se genera en:
+El controller genera el JWT utilizando:
 
 ```text
 src/utils/jwt.js
 ```
 
-El payload contiene únicamente la información mínima requerida:
+El payload contiene únicamente:
 
 ```json
 {
-  "id": "665f2a...",
-  "email": "ana@mail.com",
-  "role": "user"
+    "id": "665f2a...",
+    "email": "ana@mail.com",
+    "role": "user"
 }
 ```
 
@@ -654,238 +403,559 @@ No contiene:
 
 ```text
 password
-first_name
-last_name
-```
-
-La firma utiliza `JWT_SECRET` desde las variables de entorno.
-
-La expiración utiliza:
-
-```env
-JWT_EXPIRES_IN=1h
 ```
 
 ---
 
-# Ruta protegida
+# Estrategia `current`
 
-## GET `/api/sessions/current`
-
-Devuelve la información del usuario autenticado.
-
-La ruta está protegida mediante:
+La estrategia:
 
 ```text
-src/middlewares/auth.middleware.js
+current
 ```
 
-El middleware:
+utiliza `passport-jwt`.
 
-1. Lee la cookie `currentUser`.
-2. Verifica el JWT.
-3. Valida su firma y expiración.
-4. Guarda el payload en `req.user`.
-5. Permite continuar al controller.
+Se aplica a:
 
-### Request
+```http
+GET /api/sessions/current
+```
+
+La estrategia obtiene el JWT desde la cookie:
 
 ```text
-GET http://localhost:8080/api/sessions/current
+currentUser
 ```
 
-No es necesario enviar el JWT manualmente en un header. La autenticación se realiza mediante la cookie.
+El flujo es:
 
-### Response — `200 OK`
+```text
+Cookie currentUser
+       ↓
+Extraer JWT
+       ↓
+Verificar firma
+       ↓
+Validar token
+       ↓
+req.user
+       ↓
+Controller
+```
+
+Si no existe un token válido, se responde:
+
+```text
+401 Unauthorized
+```
+
+Cuando el token es válido, `req.user` contiene:
 
 ```json
 {
-  "status": "success",
-  "payload": {
     "id": "665f2a...",
     "email": "ana@mail.com",
     "role": "user"
-  }
 }
 ```
 
-### Sin cookie o token inválido — `401 Unauthorized`
+No contiene:
 
-```json
-{
-  "status": "error",
-  "message": "No autenticado"
-}
+```text
+password
 ```
-
-La contraseña nunca forma parte de esta respuesta.
 
 ---
 
 # Logout
 
-## POST `/api/sessions/logout`
+El logout no utiliza Passport.
 
-Cierra la sesión eliminando la cookie `currentUser`.
+Ruta:
 
-### Request
-
-```text
-POST http://localhost:8080/api/sessions/logout
+```http
+POST /api/sessions/logout
 ```
 
-No requiere Body.
+Su responsabilidad es eliminar la cookie:
 
-### Response — `200 OK`
+```text
+currentUser
+```
+
+Respuesta:
 
 ```json
 {
-  "status": "success",
-  "message": "Sesión cerrada"
+    "status": "success",
+    "message": "Sesión cerrada"
 }
 ```
 
-Después del logout, una petición a:
+HTTP:
 
 ```text
-GET /api/sessions/current
+200 OK
 ```
 
-debe responder:
+---
+
+# Rutas de autenticación
+
+Todas las rutas utilizan como base:
+
+```text
+/api/sessions
+```
+
+| Método | Endpoint | Estrategia | Descripción |
+|---|---|---|---|
+| GET | `/api/sessions/` | — | Información del módulo de sesiones. |
+| POST | `/api/sessions/register` | `register` | Registra un usuario. |
+| POST | `/api/sessions/login` | `login` | Valida credenciales y crea cookie JWT. |
+| GET | `/api/sessions/current` | `current` | Obtiene el usuario autenticado. |
+| POST | `/api/sessions/logout` | — | Elimina la cookie de autenticación. |
+
+---
+
+# Registro
+
+### Request
 
 ```http
+POST http://localhost:8080/api/sessions/register
+```
+
+Body:
+
+```json
+{
+    "first_name": "Ana",
+    "last_name": "González",
+    "email": "ana@mail.com",
+    "password": "Secreta123"
+}
+```
+
+### Registro exitoso
+
+HTTP:
+
+```text
+201 Created
+```
+
+La respuesta mantiene el contrato de la entrega anterior y no expone la contraseña.
+
+---
+
+# Login
+
+### Request
+
+```http
+POST http://localhost:8080/api/sessions/login
+```
+
+Body:
+
+```json
+{
+    "email": "ana@mail.com",
+    "password": "Secreta123"
+}
+```
+
+### Respuesta exitosa
+
+HTTP:
+
+```text
+200 OK
+```
+
+```json
+{
+    "status": "success",
+    "message": "Login correcto"
+}
+```
+
+Además, el servidor establece la cookie:
+
+```text
+currentUser
+```
+
+con:
+
+```text
+httpOnly: true
+sameSite: "lax"
+```
+
+En producción también se utiliza:
+
+```text
+secure: true
+```
+
+---
+
+# Current User
+
+### Request
+
+```http
+GET http://localhost:8080/api/sessions/current
+```
+
+Debe existir una cookie válida:
+
+```text
+currentUser
+```
+
+### Respuesta exitosa
+
+HTTP:
+
+```text
+200 OK
+```
+
+```json
+{
+    "status": "success",
+    "payload": {
+        "id": "665f2a...",
+        "email": "ana@mail.com",
+        "role": "user"
+    }
+}
+```
+
+La respuesta no contiene:
+
+```text
+password
+```
+
+---
+
+# Logout
+
+### Request
+
+```http
+POST http://localhost:8080/api/sessions/logout
+```
+
+### Respuesta
+
+HTTP:
+
+```text
+200 OK
+```
+
+```json
+{
+    "status": "success",
+    "message": "Sesión cerrada"
+}
+```
+
+Después del logout, la cookie `currentUser` deja de permitir el acceso a `/current`.
+
+---
+
+# Respuestas de error
+
+## Credenciales inválidas
+
+HTTP:
+
+```text
 401 Unauthorized
 ```
 
 ```json
 {
-  "status": "error",
-  "message": "No autenticado"
+    "status": "error",
+    "message": "Credenciales inválidas"
+}
+```
+
+Este mensaje se mantiene genérico para no revelar si el email existe o no.
+
+---
+
+## Sin autenticación
+
+HTTP:
+
+```text
+401 Unauthorized
+```
+
+```json
+{
+    "status": "error",
+    "message": "No autenticado"
 }
 ```
 
 ---
 
-# Flujo de autenticación
+## Email duplicado
+
+HTTP:
 
 ```text
-┌──────────────┐
-│   REGISTER   │
-└──────┬───────┘
-       │
-       ▼
- MongoDB Atlas
-       │
-       │
-       ▼
-┌──────────────┐
-│    LOGIN     │
-└──────┬───────┘
-       │
-       ▼
- bcrypt.compare()
-       │
-       ▼
- generateToken()
-       │
-       ▼
- Cookie currentUser
-       │
-       ▼
-┌──────────────┐
-│   /current   │
-└──────┬───────┘
-       │
-       ▼
-auth.middleware
-       │
-       ▼
-verifyToken()
-       │
-       ▼
-req.user
-       │
-       ▼
-{id, email, role}
-       │
-       ▼
-┌──────────────┐
-│    LOGOUT    │
-└──────┬───────┘
-       │
-       ▼
-clearCookie()
-       │
-       ▼
-/current → 401
+409 Conflict
+```
+
+```json
+{
+    "status": "error",
+    "message": "El email ya está registrado"
+}
 ```
 
 ---
 
 # Seguridad
 
-El proyecto aplica las siguientes medidas:
+El sistema implementa:
 
-- Contraseñas almacenadas únicamente mediante hash `bcrypt`.
-- Nunca se devuelve `password` en las respuestas.
-- El `password` no forma parte del JWT.
-- El JWT contiene solamente `id`, `email` y `role`.
-- `JWT_SECRET` se obtiene desde variables de entorno.
-- La cookie de autenticación utiliza `httpOnly`.
-- La cookie utiliza `sameSite: "lax"`.
-- `secure` se activa solamente en producción.
-- Los errores de login utilizan un mensaje genérico.
-- `.env` y credenciales privadas no deben subirse al repositorio.
+- Contraseñas protegidas mediante `bcrypt`.
+- JWT firmado con una clave secreta.
+- JWT almacenado en cookie HTTP Only.
+- Validación del JWT mediante Passport.
+- Mensaje genérico para credenciales inválidas.
+- No se incluye `password` en el JWT.
+- No se incluye `password` en las respuestas.
+- Rol controlado mediante el modelo de usuario.
+- `.env` excluido del repositorio.
+- `.env.example` sin credenciales reales.
 
 ---
 
-# Pruebas realizadas
+# Flujo completo de autenticación
 
-La funcionalidad de autenticación fue comprobada mediante Postman.
-
-## Casos de prueba
-
-### 1. Registro exitoso
+## Registro
 
 ```text
 POST /api/sessions/register
+            │
+            ▼
+passport.authenticate("register")
+            │
+            ▼
+Strategy: register
+            │
+            ├── Validación
+            ├── Normalización
+            ├── Email único
+            ├── bcrypt.hash()
+            └── Crear usuario
+            │
+            ▼
+         req.user
+            │
+            ▼
+        Controller
+            │
+            ▼
+         HTTP 201
 ```
 
-Resultado esperado:
+## Login
 
 ```text
-201 Created
+POST /api/sessions/login
+            │
+            ▼
+passport.authenticate("login")
+            │
+            ▼
+Strategy: login
+            │
+            ├── Buscar usuario
+            └── bcrypt.compare()
+            │
+            ▼
+         req.user
+            │
+            ▼
+        Controller
+            │
+            ├── generateToken()
+            └── res.cookie()
+            │
+            ▼
+         HTTP 200
 ```
 
-### 2. Campos faltantes
+## Current
 
 ```text
-POST /api/sessions/register
+GET /api/sessions/current
+            │
+            ▼
+passport.authenticate("current")
+            │
+            ▼
+Strategy: current
+            │
+            ├── Leer cookie
+            ├── Extraer JWT
+            └── Verificar JWT
+            │
+            ▼
+         req.user
+            │
+            ▼
+        Controller
+            │
+            ▼
+         HTTP 200
 ```
 
-Resultado esperado:
+## Logout
 
 ```text
-400 Bad Request
+POST /api/sessions/logout
+            │
+            ▼
+        Controller
+            │
+            ▼
+   Eliminar currentUser
+            │
+            ▼
+         HTTP 200
 ```
 
-### 3. Email inválido
+---
+
+# Modelo User
+
+El modelo `User` contiene:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `first_name` | String | Nombre del usuario. |
+| `last_name` | String | Apellido del usuario. |
+| `email` | String | Email único. |
+| `password` | String | Contraseña almacenada como hash bcrypt. |
+| `role` | String | Rol del usuario. |
+
+Roles disponibles:
 
 ```text
-POST /api/sessions/register
+user
+organizer
+admin
 ```
 
-Resultado esperado:
+Rol por defecto:
 
 ```text
-400 Bad Request
+user
 ```
 
-### 4. Email duplicado
+---
+
+# Eventos
+
+El proyecto mantiene el módulo de eventos desarrollado en las entregas anteriores.
+
+Base:
 
 ```text
-POST /api/sessions/register
+/api/events
 ```
+
+La gestión de eventos utiliza la arquitectura:
+
+```text
+Routes
+  ↓
+Controllers
+  ↓
+Services
+  ↓
+Repositories
+  ↓
+DAO
+  ↓
+Models
+  ↓
+MongoDB Atlas
+```
+
+La incorporación de Passport está enfocada en el sistema de autenticación y no modifica el contrato existente del módulo de eventos.
+
+---
+
+# Preparación para providers externos
+
+La configuración de Passport está centralizada en:
+
+```text
+src/config/passport.config.js
+```
+
+Actualmente se encuentran implementadas:
+
+```text
+register
+login
+current
+```
+
+La estructura permite incorporar posteriormente estrategias de autenticación mediante proveedores externos, por ejemplo:
+
+```text
+Google
+GitHub
+```
+
+sin tener que modificar la inicialización de Passport en:
+
+```text
+src/app.js
+```
+
+De esta manera, el proyecto queda preparado para futuras ampliaciones de autenticación y autorización.
+
+---
+
+# Casos de prueba
+
+Antes de entregar la Pre-entrega 4 se deben comprobar los siguientes casos.
+
+## 1. Flujo completo
+
+```text
+Registro exitoso
+      ↓
+Login exitoso
+      ↓
+/current → 200
+      ↓
+Logout
+      ↓
+/current → 401
+```
+
+## 2. Email duplicado
+
+Intentar registrar un usuario utilizando un email que ya existe.
 
 Resultado esperado:
 
@@ -893,173 +963,186 @@ Resultado esperado:
 409 Conflict
 ```
 
-### 5. Login exitoso
+```json
+{
+    "status": "error",
+    "message": "El email ya está registrado"
+}
+```
+
+## 3. Login con credenciales inválidas
+
+Probar con:
+
+- Email inexistente.
+- Contraseña incorrecta.
+
+Resultado esperado:
 
 ```text
-POST /api/sessions/login
+401 Unauthorized
+```
+
+```json
+{
+    "status": "error",
+    "message": "Credenciales inválidas"
+}
+```
+
+## 4. `/current` sin cookie
+
+Realizar:
+
+```http
+GET /api/sessions/current
+```
+
+sin la cookie `currentUser`.
+
+Resultado esperado:
+
+```text
+401 Unauthorized
+```
+
+## 5. `/current` con token manipulado
+
+Modificar el JWT almacenado en `currentUser` y realizar nuevamente:
+
+```http
+GET /api/sessions/current
 ```
 
 Resultado esperado:
 
 ```text
-200 OK
+401 Unauthorized
 ```
 
-y cookie:
+---
+
+# Prueba del JWT
+
+Después de realizar un login exitoso, la cookie:
 
 ```text
 currentUser
 ```
 
-### 6. Login con email inexistente
+contiene el JWT.
 
-Resultado esperado:
+El payload debe ser conceptualmente:
 
-```text
-401 Unauthorized
-Credenciales inválidas
+```json
+{
+    "id": "665f2a...",
+    "email": "ana@mail.com",
+    "role": "user"
+}
 ```
 
-### 7. Login con contraseña incorrecta
-
-Resultado esperado:
+No debe contener:
 
 ```text
-401 Unauthorized
-Credenciales inválidas
+password
+first_name
+last_name
 ```
 
-### 8. `/current` con cookie válida
-
-Resultado esperado:
-
-```text
-200 OK
-```
-
-con:
-
-```text
-id
-email
-role
-```
-
-### 9. `/current` sin cookie
-
-Resultado esperado:
-
-```text
-401 Unauthorized
-No autenticado
-```
-
-### 10. `/current` con token manipulado
-
-Resultado esperado:
-
-```text
-401 Unauthorized
-No autenticado
-```
-
-### 11. Logout
-
-Resultado esperado:
-
-```text
-200 OK
-Sesión cerrada
-```
-
-### 12. `/current` después del logout
-
-Resultado esperado:
-
-```text
-401 Unauthorized
-No autenticado
-```
+La contraseña permanece almacenada únicamente como hash en MongoDB.
 
 ---
 
-# Secuencia completa de autenticación
+# Git
 
-La secuencia principal probada es:
+Los cambios de la Pre-entrega 4 se organizan mediante commits separados por responsabilidad.
 
-```text
-Registro
-   ↓
-Login
-   ↓
-Cookie currentUser
-   ↓
-/current → 200
-   ↓
-Logout
-   ↓
-Cookie eliminada
-   ↓
-/current → 401
-```
-
----
-
-# Git y control de versiones
-
-El desarrollo se realiza mediante commits progresivos, describiendo los cambios realizados en cada etapa.
-
-Ejemplos:
+Ejemplos utilizados durante la implementación:
 
 ```bash
-git add .
-git commit -m "feat: implement JWT authentication flow"
+git add package.json package-lock.json
+git commit -m "chore: add Passport authentication dependencies"
 ```
 
 ```bash
-git add .
-git commit -m "feat: implement session logout"
+git add src/config/passport.config.js
+git commit -m "feat: add Passport register strategy"
 ```
 
-Los commits permiten mantener un historial del desarrollo incremental del proyecto.
+```bash
+git add src/app.js
+git commit -m "refactor: initialize Passport in app"
+```
+
+```bash
+git add src/routes/sessions.router.js
+git commit -m "refactor: integrate Passport into register route"
+```
+
+```bash
+git add src/controllers/sessions.controller.js
+git commit -m "refactor: update register controller for Passport"
+```
+
+Para los cambios posteriores de login y current pueden utilizarse commits específicos que describan esas responsabilidades.
+
+Antes de subir los cambios:
+
+```bash
+git status
+```
+
+Verificar que no aparezca:
+
+```text
+.env
+node_modules/
+```
+
+Finalmente:
+
+```bash
+git push
+```
 
 ---
 
-# Estado actual del proyecto
+# Repositorio
 
-Esta entrega incluye:
-
-- Arquitectura REST por capas.
-- Express configurado.
-- ES Modules.
-- Variables de entorno mediante dotenv.
-- Conexión a MongoDB Atlas mediante Mongoose.
-- Modelo `User`.
-- Modelo `Event`.
-- DAO y Repository para usuarios y eventos.
-- CRUD de eventos.
-- Registro de usuarios.
-- Validación de datos.
-- Normalización de email.
-- Hash de contraseñas mediante bcrypt.
-- Prevención de emails duplicados.
-- Login de usuarios.
-- Comparación segura de contraseñas.
-- Generación de JWT.
-- Cookie `currentUser` HTTP Only.
-- Middleware de autenticación.
-- Ruta protegida `/api/sessions/current`.
-- Logout.
-- Manejo de errores.
-- `.env.example`.
-- Documentación de endpoints.
-- Pruebas mediante Postman.
-
----
-
-## Repositorio
-
-Repositorio público del proyecto:
+Repositorio público:
 
 ```text
 https://github.com/ha3nebal/Pre-entrega-backend2
+```
+
+---
+
+# Estado de la Pre-entrega 4
+
+La Pre-entrega 4 incorpora **Passport.js como capa centralizada de autenticación**, manteniendo el contrato externo de la Pre-entrega 3.
+
+Se mantienen:
+
+- Node.js.
+- Express.
+- MongoDB Atlas.
+- Mongoose.
+- bcrypt.
+- JWT.
+- Cookies HTTP Only.
+- Arquitectura por capas.
+- Rutas existentes.
+- Respuestas principales de la API.
+
+Se incorporan:
+
+- Passport.js.
+- Estrategia `register`.
+- Estrategia `login`.
+- Estrategia `current`.
+- Inicialización de Passport en `app.js`.
+- Configuración centralizada en `src/config/passport.config.js`.
+- Preparación para futuros providers externos como Google y GitHub.
+
+El JWT continúa siendo generado por el **controller después de una autenticación exitosa**, y Passport se encarga de centralizar las estrategias de autenticación.
