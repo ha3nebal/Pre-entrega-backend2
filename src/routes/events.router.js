@@ -8,6 +8,9 @@ import {
     deleteExistingEvent
 } from "../controllers/events.controller.js";
 
+import { auth } from "../middlewares/auth.middleware.js";
+import { authorize } from "../middlewares/authorize.middleware.js";
+
 const router = Router();
 
 /**
@@ -23,7 +26,12 @@ router.get("/:id", getEvent);
 /**
  * Crear un nuevo evento
  */
-router.post("/", createNewEvent);
+router.post(
+    "/",
+    auth,
+    authorize("organizer", "admin"),
+    createNewEvent
+);
 
 /**
  * Actualizar un evento existente
