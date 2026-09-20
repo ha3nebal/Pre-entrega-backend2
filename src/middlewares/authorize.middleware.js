@@ -5,11 +5,7 @@ export const authorize = (...allowedRoles) => {
     return (req, res, next) => {
 
         if (!req.user) {
-            return sendError(
-                res,
-                "No autenticado",
-                401
-            );
+            return sendError(res, "No autenticado", 401);
         }
 
         if (!allowedRoles.includes(req.user.role)) {
