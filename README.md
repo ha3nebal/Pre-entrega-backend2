@@ -1,10 +1,12 @@
-# Pre-entrega Backend 2 — Autenticación con Passport.js
+# Pre-entrega Backend 2 — Roles y autorización
 
 API REST desarrollada con **Node.js, Express, MongoDB y Mongoose** para la gestión de usuarios y eventos.
 
-Este proyecto corresponde a la **Pre-entrega 4** del curso **Backend de Coderhouse**. En esta etapa se refactoriza el sistema de autenticación de la Pre-entrega 3 incorporando **Passport.js** para centralizar las estrategias de registro, login y usuario actual.
+Esta etapa corresponde a la **Pre-entrega 5: Roles y autorización** del curso **Backend de Coderhouse**.
 
-El comportamiento externo de la API se mantiene: **las rutas y respuestas principales no cambian**. El cambio corresponde principalmente a la organización interna de la autenticación.
+En esta entrega se incorpora un sistema de **autorización basada en roles**, utilizando los roles `user`, `organizer` y `admin`, junto con middleware reutilizable para proteger las rutas de acuerdo con los permisos correspondientes.
+
+El sistema mantiene la autenticación implementada anteriormente mediante **Passport.js, JWT, cookies HTTP Only y bcrypt**, y agrega una capa de autorización independiente para controlar el acceso a los recursos.
 
 ---
 
@@ -27,18 +29,21 @@ El comportamiento externo de la API se mantiene: **las rutas y respuestas princi
 
 ---
 
-# Arquitectura
+## Arquitectura
 
-El proyecto utiliza una arquitectura por capas para separar responsabilidades:
+El proyecto utiliza una arquitectura por capas:
 
 ```text
 Cliente / Postman
        │
        ▼
-     Routes
+    Routes
        │
        ▼
- Passport Strategies
+  Middlewares
+       │
+       ├── Auth
+       └── Authorization
        │
        ▼
   Controllers
@@ -47,7 +52,7 @@ Cliente / Postman
     Services
        │
        ▼
- Repositories
+  Repositories
        │
        ▼
       DAO
@@ -59,29 +64,19 @@ Cliente / Postman
  MongoDB Atlas
 ```
 
-La configuración de las estrategias de Passport se encuentra centralizada en:
+Archivos principales relacionados con autenticación y autorización:
 
 ```text
+src/middlewares/auth.middleware.js
+src/middlewares/authorize.middleware.js
 src/config/passport.config.js
-```
-
-La generación y verificación de JWT continúa separada en:
-
-```text
 src/utils/jwt.js
-```
-
-El hash y comparación de contraseñas se mantienen en:
-
-```text
 src/utils/hash.js
 ```
 
-Passport se inicializa en `app.js`, pero las estrategias no se definen dentro de este archivo.
-
 ---
 
-# Estructura del proyecto
+## Estructura del proyecto
 
 ```text
 Pre-entrega-backend2/
@@ -97,11 +92,13 @@ Pre-entrega-backend2/
 │   │
 │   ├── controllers/
 │   │   ├── events.controller.js
-│   │   └── sessions.controller.js
+│   │   ├── sessions.controller.js
+│   │   └── users.controller.js
 │   │
 │   ├── services/
 │   │   ├── events.service.js
-│   │   └── sessions.service.js
+│   │   ├── sessions.service.js
+│   │   └── users.service.js
 │   │
 │   ├── repositories/
 │   │   ├── event.repository.js
@@ -117,10 +114,12 @@ Pre-entrega-backend2/
 │   │
 │   ├── routes/
 │   │   ├── events.router.js
-│   │   └── sessions.router.js
+│   │   ├── sessions.router.js
+│   │   └── users.router.js
 │   │
 │   ├── middlewares/
 │   │   ├── auth.middleware.js
+│   │   ├── authorize.middleware.js
 │   │   ├── error.middleware.js
 │   │   └── notFound.middleware.js
 │   │
@@ -140,39 +139,19 @@ Pre-entrega-backend2/
 
 ---
 
-# Instalación
-
-Clonar el repositorio:
+## Instalación
 
 ```bash
 git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
-```
-
-Ingresar al proyecto:
-
-```bash
 cd Pre-entrega-backend2
-```
-
-Instalar las dependencias:
-
-```bash
 npm install
-```
-
-Las dependencias utilizadas para Passport son:
-
-```bash
-npm install passport passport-local passport-jwt
 ```
 
 ---
 
-# Variables de entorno
+## Variables de entorno
 
-Crear un archivo `.env` en la raíz del proyecto.
-
-Ejemplo:
+Crear un archivo `.env` en la raíz:
 
 ```env
 PORT=8080
@@ -182,44 +161,19 @@ JWT_SECRET=tu_clave_secreta
 JWT_EXPIRES_IN=1h
 ```
 
-## Variables
-
 | Variable | Descripción |
 |---|---|
 | `PORT` | Puerto utilizado por el servidor. |
 | `NODE_ENV` | Entorno de ejecución. |
 | `MONGO_URL` | URI de conexión a MongoDB Atlas. |
-| `JWT_SECRET` | Clave utilizada para firmar y verificar los JWT. |
+| `JWT_SECRET` | Clave utilizada para firmar y verificar JWT. |
 | `JWT_EXPIRES_IN` | Tiempo de expiración del JWT. |
 
-El proyecto incluye:
-
-```text
-.env.example
-```
-
-como referencia.
-
-### Seguridad
-
-El archivo:
-
-```text
-.env
-```
-
-no debe subirse al repositorio.
-
-Tampoco deben publicarse:
-
-- Credenciales de MongoDB.
-- Claves JWT.
-- Contraseñas.
-- Otros secretos de configuración.
+El archivo `.env` no debe subirse al repositorio.
 
 ---
 
-# Ejecución
+## Ejecución
 
 Modo desarrollo:
 
@@ -233,25 +187,42 @@ Modo producción:
 npm start
 ```
 
-Por defecto, la API queda disponible en:
+Por defecto:
 
 ```text
 http://localhost:8080
 ```
 
----
+Health check:
 
-# Passport.js
-
-La Pre-entrega 4 incorpora Passport.js para centralizar la autenticación.
-
-Passport se inicializa en:
-
-```text
-src/app.js
+```http
+GET /api/health
 ```
 
-mediante:
+Respuesta:
+
+```json
+{
+    "status": "ok",
+    "message": "Servidor activo"
+}
+```
+
+---
+
+# Autenticación
+
+La autenticación utiliza **Passport.js, JWT, bcrypt y cookies HTTP Only**.
+
+Estrategias implementadas:
+
+```text
+register
+login
+current
+```
+
+Passport se inicializa mediante:
 
 ```js
 app.use(passport.initialize());
@@ -263,269 +234,14 @@ Las estrategias están centralizadas en:
 src/config/passport.config.js
 ```
 
-Actualmente se implementan tres estrategias:
-
-```text
-register
-login
-current
-```
-
-No se utiliza `passport.session()` porque la autenticación de la API es **stateless**, basada en JWT almacenado en una cookie HTTP Only.
+La API utiliza autenticación stateless mediante JWT.
 
 ---
 
-# Estrategia `register`
-
-La estrategia:
-
-```text
-register
-```
-
-se utiliza para:
+## Registro
 
 ```http
 POST /api/sessions/register
-```
-
-La lógica de registro se encuentra dentro de la estrategia de Passport.
-
-La estrategia realiza:
-
-1. Validación de campos obligatorios.
-2. Normalización de nombre y apellido.
-3. Normalización del email.
-4. Validación del formato del email.
-5. Validación de la longitud mínima de la contraseña.
-6. Comprobación de email duplicado.
-7. Hash de contraseña mediante `bcrypt`.
-8. Creación del usuario mediante el repository.
-9. Utilización del rol por defecto definido en el modelo.
-10. Exclusión de la contraseña del usuario que queda disponible para la respuesta.
-
-La ruta delega la autenticación mediante:
-
-```js
-passport.authenticate("register", {
-    session: false
-})
-```
-
-El rol no se recibe directamente desde el registro. El modelo `User` define:
-
-```text
-user
-organizer
-admin
-```
-
-y utiliza:
-
-```text
-user
-```
-
-como rol por defecto.
-
----
-
-# Estrategia `login`
-
-La estrategia:
-
-```text
-login
-```
-
-se utiliza para:
-
-```http
-POST /api/sessions/login
-```
-
-La estrategia se encarga de:
-
-1. Recibir email y contraseña.
-2. Normalizar el email.
-3. Buscar el usuario.
-4. Comparar la contraseña mediante `bcrypt`.
-5. Validar las credenciales.
-6. Dejar el usuario autenticado disponible en `req.user`.
-
-Las credenciales inválidas mantienen una respuesta genérica:
-
-```text
-Credenciales inválidas
-```
-
-con HTTP:
-
-```text
-401 Unauthorized
-```
-
-## Generación del JWT
-
-La estrategia `login` **no genera el JWT**.
-
-Después de una autenticación exitosa:
-
-```text
-Passport
-   ↓
-req.user
-   ↓
-Controller
-   ↓
-generateToken()
-   ↓
-cookie currentUser
-```
-
-El controller genera el JWT utilizando:
-
-```text
-src/utils/jwt.js
-```
-
-El payload contiene únicamente:
-
-```json
-{
-    "id": "665f2a...",
-    "email": "ana@mail.com",
-    "role": "user"
-}
-```
-
-No contiene:
-
-```text
-password
-```
-
----
-
-# Estrategia `current`
-
-La estrategia:
-
-```text
-current
-```
-
-utiliza `passport-jwt`.
-
-Se aplica a:
-
-```http
-GET /api/sessions/current
-```
-
-La estrategia obtiene el JWT desde la cookie:
-
-```text
-currentUser
-```
-
-El flujo es:
-
-```text
-Cookie currentUser
-       ↓
-Extraer JWT
-       ↓
-Verificar firma
-       ↓
-Validar token
-       ↓
-req.user
-       ↓
-Controller
-```
-
-Si no existe un token válido, se responde:
-
-```text
-401 Unauthorized
-```
-
-Cuando el token es válido, `req.user` contiene:
-
-```json
-{
-    "id": "665f2a...",
-    "email": "ana@mail.com",
-    "role": "user"
-}
-```
-
-No contiene:
-
-```text
-password
-```
-
----
-
-# Logout
-
-El logout no utiliza Passport.
-
-Ruta:
-
-```http
-POST /api/sessions/logout
-```
-
-Su responsabilidad es eliminar la cookie:
-
-```text
-currentUser
-```
-
-Respuesta:
-
-```json
-{
-    "status": "success",
-    "message": "Sesión cerrada"
-}
-```
-
-HTTP:
-
-```text
-200 OK
-```
-
----
-
-# Rutas de autenticación
-
-Todas las rutas utilizan como base:
-
-```text
-/api/sessions
-```
-
-| Método | Endpoint | Estrategia | Descripción |
-|---|---|---|---|
-| GET | `/api/sessions/` | — | Información del módulo de sesiones. |
-| POST | `/api/sessions/register` | `register` | Registra un usuario. |
-| POST | `/api/sessions/login` | `login` | Valida credenciales y crea cookie JWT. |
-| GET | `/api/sessions/current` | `current` | Obtiene el usuario autenticado. |
-| POST | `/api/sessions/logout` | — | Elimina la cookie de autenticación. |
-
----
-
-# Registro
-
-### Request
-
-```http
-POST http://localhost:8080/api/sessions/register
 ```
 
 Body:
@@ -539,320 +255,9 @@ Body:
 }
 ```
 
-### Registro exitoso
+El registro realiza validaciones, normalización de datos, comprobación de email duplicado y hash mediante bcrypt.
 
-HTTP:
-
-```text
-201 Created
-```
-
-La respuesta mantiene el contrato de la entrega anterior y no expone la contraseña.
-
----
-
-# Login
-
-### Request
-
-```http
-POST http://localhost:8080/api/sessions/login
-```
-
-Body:
-
-```json
-{
-    "email": "ana@mail.com",
-    "password": "Secreta123"
-}
-```
-
-### Respuesta exitosa
-
-HTTP:
-
-```text
-200 OK
-```
-
-```json
-{
-    "status": "success",
-    "message": "Login correcto"
-}
-```
-
-Además, el servidor establece la cookie:
-
-```text
-currentUser
-```
-
-con:
-
-```text
-httpOnly: true
-sameSite: "lax"
-```
-
-En producción también se utiliza:
-
-```text
-secure: true
-```
-
----
-
-# Current User
-
-### Request
-
-```http
-GET http://localhost:8080/api/sessions/current
-```
-
-Debe existir una cookie válida:
-
-```text
-currentUser
-```
-
-### Respuesta exitosa
-
-HTTP:
-
-```text
-200 OK
-```
-
-```json
-{
-    "status": "success",
-    "payload": {
-        "id": "665f2a...",
-        "email": "ana@mail.com",
-        "role": "user"
-    }
-}
-```
-
-La respuesta no contiene:
-
-```text
-password
-```
-
----
-
-# Logout
-
-### Request
-
-```http
-POST http://localhost:8080/api/sessions/logout
-```
-
-### Respuesta
-
-HTTP:
-
-```text
-200 OK
-```
-
-```json
-{
-    "status": "success",
-    "message": "Sesión cerrada"
-}
-```
-
-Después del logout, la cookie `currentUser` deja de permitir el acceso a `/current`.
-
----
-
-# Respuestas de error
-
-## Credenciales inválidas
-
-HTTP:
-
-```text
-401 Unauthorized
-```
-
-```json
-{
-    "status": "error",
-    "message": "Credenciales inválidas"
-}
-```
-
-Este mensaje se mantiene genérico para no revelar si el email existe o no.
-
----
-
-## Sin autenticación
-
-HTTP:
-
-```text
-401 Unauthorized
-```
-
-```json
-{
-    "status": "error",
-    "message": "No autenticado"
-}
-```
-
----
-
-## Email duplicado
-
-HTTP:
-
-```text
-409 Conflict
-```
-
-```json
-{
-    "status": "error",
-    "message": "El email ya está registrado"
-}
-```
-
----
-
-# Seguridad
-
-El sistema implementa:
-
-- Contraseñas protegidas mediante `bcrypt`.
-- JWT firmado con una clave secreta.
-- JWT almacenado en cookie HTTP Only.
-- Validación del JWT mediante Passport.
-- Mensaje genérico para credenciales inválidas.
-- No se incluye `password` en el JWT.
-- No se incluye `password` en las respuestas.
-- Rol controlado mediante el modelo de usuario.
-- `.env` excluido del repositorio.
-- `.env.example` sin credenciales reales.
-
----
-
-# Flujo completo de autenticación
-
-## Registro
-
-```text
-POST /api/sessions/register
-            │
-            ▼
-passport.authenticate("register")
-            │
-            ▼
-Strategy: register
-            │
-            ├── Validación
-            ├── Normalización
-            ├── Email único
-            ├── bcrypt.hash()
-            └── Crear usuario
-            │
-            ▼
-         req.user
-            │
-            ▼
-        Controller
-            │
-            ▼
-         HTTP 201
-```
-
-## Login
-
-```text
-POST /api/sessions/login
-            │
-            ▼
-passport.authenticate("login")
-            │
-            ▼
-Strategy: login
-            │
-            ├── Buscar usuario
-            └── bcrypt.compare()
-            │
-            ▼
-         req.user
-            │
-            ▼
-        Controller
-            │
-            ├── generateToken()
-            └── res.cookie()
-            │
-            ▼
-         HTTP 200
-```
-
-## Current
-
-```text
-GET /api/sessions/current
-            │
-            ▼
-passport.authenticate("current")
-            │
-            ▼
-Strategy: current
-            │
-            ├── Leer cookie
-            ├── Extraer JWT
-            └── Verificar JWT
-            │
-            ▼
-         req.user
-            │
-            ▼
-        Controller
-            │
-            ▼
-         HTTP 200
-```
-
-## Logout
-
-```text
-POST /api/sessions/logout
-            │
-            ▼
-        Controller
-            │
-            ▼
-   Eliminar currentUser
-            │
-            ▼
-         HTTP 200
-```
-
----
-
-# Modelo User
-
-El modelo `User` contiene:
-
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `first_name` | String | Nombre del usuario. |
-| `last_name` | String | Apellido del usuario. |
-| `email` | String | Email único. |
-| `password` | String | Contraseña almacenada como hash bcrypt. |
-| `role` | String | Rol del usuario. |
+El rol no se puede seleccionar libremente desde el registro público.
 
 Roles disponibles:
 
@@ -870,9 +275,195 @@ user
 
 ---
 
-# Eventos
+## Login
 
-El proyecto mantiene el módulo de eventos desarrollado en las entregas anteriores.
+```http
+POST /api/sessions/login
+```
+
+Body:
+
+```json
+{
+    "email": "ana@mail.com",
+    "password": "Secreta123"
+}
+```
+
+Respuesta:
+
+```json
+{
+    "status": "success",
+    "message": "Login correcto"
+}
+```
+
+El JWT se almacena en la cookie:
+
+```text
+currentUser
+```
+
+Payload conceptual:
+
+```json
+{
+    "id": "665f2a...",
+    "email": "ana@mail.com",
+    "role": "user"
+}
+```
+
+El JWT no contiene `password`, `first_name` ni `last_name`.
+
+---
+
+## Current User
+
+```http
+GET /api/sessions/current
+```
+
+Requiere una cookie JWT válida.
+
+Sin sesión:
+
+```text
+401 Unauthorized
+```
+
+Con sesión válida:
+
+```text
+200 OK
+```
+
+---
+
+## Logout
+
+```http
+POST /api/sessions/logout
+```
+
+Elimina la cookie `currentUser`.
+
+---
+
+# Roles
+
+El sistema utiliza tres roles:
+
+| Rol | Descripción |
+|---|---|
+| `user` | Usuario estándar de la plataforma. |
+| `organizer` | Usuario autorizado para gestionar sus propios eventos. |
+| `admin` | Usuario con permisos administrativos y capacidad de gestionar cualquier evento. |
+
+---
+
+# Autorización basada en roles
+
+La autorización se implementa mediante:
+
+```text
+src/middlewares/authorize.middleware.js
+```
+
+Ejemplo:
+
+```js
+authorize("organizer", "admin")
+```
+
+o:
+
+```js
+authorize("admin")
+```
+
+El middleware verifica:
+
+```text
+req.user.role
+```
+
+Si no existe una sesión válida:
+
+```text
+401 Unauthorized
+```
+
+Si existe sesión pero el rol no tiene permiso:
+
+```text
+403 Forbidden
+```
+
+---
+
+# Diferencia entre 401 y 403
+
+## 401 Unauthorized
+
+El usuario no está autenticado.
+
+Ejemplo:
+
+```text
+GET /api/sessions/current
+```
+
+sin cookie válida.
+
+```json
+{
+    "status": "error",
+    "message": "No autenticado"
+}
+```
+
+---
+
+## 403 Forbidden
+
+El usuario está autenticado pero no posee el rol requerido.
+
+Ejemplo:
+
+```text
+user
+   ↓
+POST /api/events
+```
+
+Respuesta:
+
+```json
+{
+    "status": "error",
+    "message": "No tenés permisos para realizar esta acción"
+}
+```
+
+---
+
+# Matriz de permisos
+
+| Acción | user | organizer | admin |
+|---|---:|---:|---:|
+| Consultar eventos | Sí | Sí | Sí |
+| Crear eventos | No | Sí | Sí |
+| Modificar sus propios eventos | No | Sí | Sí |
+| Eliminar sus propios eventos | No | Sí | Sí |
+| Modificar eventos de otros usuarios | No | No | Sí |
+| Eliminar eventos de otros usuarios | No | No | Sí |
+| Consultar todos los usuarios | No | No | Sí |
+
+---
+
+# Eventos
 
 Base:
 
@@ -880,10 +471,405 @@ Base:
 /api/events
 ```
 
-La gestión de eventos utiliza la arquitectura:
+| Método | Endpoint | Autenticación | Roles | Descripción |
+|---|---|---|---|---|
+| GET | `/api/events` | No | Todos | Obtener eventos. |
+| GET | `/api/events/:id` | No | Todos | Obtener un evento. |
+| POST | `/api/events` | Sí | organizer, admin | Crear evento. |
+| PUT | `/api/events/:id` | Sí | organizer, admin | Modificar evento. |
+| DELETE | `/api/events/:id` | Sí | organizer, admin | Eliminar evento. |
+
+---
+
+# Creación de eventos
+
+```http
+POST http://localhost:8080/api/events
+```
+
+Body:
+
+```json
+{
+    "title": "Evento de prueba",
+    "description": "Descripción del evento",
+    "date": "2026-10-15",
+    "location": "Viña del Mar",
+    "capacity": 50
+}
+```
+
+La ruta requiere:
+
+```text
+auth
+authorize("organizer", "admin")
+```
+
+El cliente no debe enviar `organizer`.
+
+El backend utiliza:
+
+```text
+req.user.id
+```
+
+para establecer automáticamente el propietario.
+
+---
+
+# Ownership de eventos
+
+Cada evento tiene un propietario mediante el campo:
+
+```text
+organizer
+```
+
+Cuando un `organizer` modifica o elimina un evento, el Service verifica que el evento pertenezca al usuario autenticado.
+
+Si no es propietario:
+
+```text
+403 Forbidden
+```
+
+Un `admin` puede modificar o eliminar eventos independientemente de su propietario.
+
+El campo `organizer` tampoco puede modificarse enviándolo en el body de una actualización.
+
+---
+
+# Ruta administrativa de usuarios
+
+```http
+GET /api/users
+```
+
+Esta ruta requiere:
+
+```text
+auth
+authorize("admin")
+```
+
+Flujo:
+
+```text
+GET /api/users
+      │
+      ▼
+    auth
+      │
+      ├── Sin sesión → 401
+      │
+      ▼
+authorize("admin")
+      │
+      ├── user → 403
+      ├── organizer → 403
+      └── admin → continúa
+                     │
+                     ▼
+               Users Controller
+```
+
+Arquitectura:
+
+```text
+users.router.js
+      ↓
+users.controller.js
+      ↓
+users.service.js
+      ↓
+user.repository.js
+      ↓
+UserDAO.js
+      ↓
+User
+```
+
+Las contraseñas se eliminan antes de enviar la respuesta.
+
+---
+
+# Rutas protegidas
+
+## Current
+
+```text
+GET /api/sessions/current
+```
+
+Requiere:
+
+```text
+auth
+```
+
+## Crear evento
+
+```text
+POST /api/events
+```
+
+Requiere:
+
+```text
+auth
+authorize("organizer", "admin")
+```
+
+## Modificar evento
+
+```text
+PUT /api/events/:id
+```
+
+Requiere:
+
+```text
+auth
+authorize("organizer", "admin")
+```
+
+Además se aplica ownership:
+
+```text
+organizer → solamente sus propios eventos
+admin → cualquier evento
+```
+
+## Eliminar evento
+
+```text
+DELETE /api/events/:id
+```
+
+Requiere:
+
+```text
+auth
+authorize("organizer", "admin")
+```
+
+## Consultar usuarios
+
+```text
+GET /api/users
+```
+
+Requiere:
+
+```text
+auth
+authorize("admin")
+```
+
+---
+
+# Seguridad
+
+El sistema implementa:
+
+- Contraseñas protegidas mediante bcrypt.
+- JWT firmado con una clave secreta.
+- JWT almacenado en cookie HTTP Only.
+- Middleware reutilizable de autenticación.
+- Middleware reutilizable de autorización.
+- Separación entre autenticación y autorización.
+- Mensaje genérico para credenciales inválidas.
+- No se incluye `password` en el JWT.
+- No se incluye `password` en las respuestas.
+- Rol `user` por defecto en registros públicos.
+- Protección de rutas según rol.
+- Control de ownership de eventos.
+- Protección del campo `organizer`.
+- `.env` excluido del repositorio.
+- `.env.example` sin credenciales reales.
+
+---
+
+# Casos de prueba — Pre-entrega 5
+
+Las pruebas fueron realizadas utilizando Postman.
+
+| Prueba | Resultado |
+|---|---|
+| Sin sesión → `GET /api/users` | `401 Unauthorized` |
+| `user` → `GET /api/users` | `403 Forbidden` |
+| `admin` → `GET /api/users` | `200 OK` |
+| `user` → `POST /api/events` | `403 Forbidden` |
+| `organizer` → `POST /api/events` | `201 Created` |
+| Organizer modifica evento ajeno | `403 Forbidden` |
+| Admin modifica evento ajeno | `200 OK` |
+| Passwords en `/api/users` | No se exponen |
+| Organizer intenta cambiar `organizer` | Campo protegido |
+
+---
+
+# Flujo de autorización
+
+```text
+Request
+   │
+   ▼
+Route
+   │
+   ▼
+auth
+   │
+   ├── Sin JWT → 401
+   │
+   ▼
+req.user
+   │
+   ▼
+authorize(...)
+   │
+   ├── Rol no permitido → 403
+   │
+   ▼
+Controller
+   │
+   ▼
+Service
+   │
+   ▼
+Ownership
+   │
+   ├── No propietario → 403
+   │
+   ▼
+Repository
+   │
+   ▼
+DAO
+   │
+   ▼
+MongoDB Atlas
+```
+
+---
+
+# Modelo User
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `first_name` | String | Nombre del usuario. |
+| `last_name` | String | Apellido del usuario. |
+| `email` | String | Email único. |
+| `password` | String | Contraseña almacenada como hash bcrypt. |
+| `role` | String | Rol del usuario. |
+
+Roles:
+
+```text
+user
+organizer
+admin
+```
+
+Rol por defecto:
+
+```text
+user
+```
+
+---
+
+# Modelo Event
+
+El modelo `Event` contiene información del evento y su propietario.
+
+El campo:
+
+```text
+organizer
+```
+
+utiliza una referencia hacia el modelo `User`.
+
+Esto permite relacionar cada evento con el usuario que lo creó.
+
+---
+
+# Git
+
+Para revisar el estado:
+
+```bash
+git status
+```
+
+Para revisar los commits:
+
+```bash
+git log --oneline
+```
+
+Antes de subir cambios verificar que no aparezcan:
+
+```text
+.env
+node_modules/
+```
+
+Commit principal de la implementación de P5:
+
+```text
+cf1b2b1 feat: implement role-based authorization
+```
+
+---
+
+# Repositorio
+
+```text
+https://github.com/ha3nebal/Pre-entrega-backend2
+```
+
+---
+
+# Estado de la Pre-entrega 5
+
+La Pre-entrega 5 incorpora un sistema de **roles y autorización** sobre la API.
+
+Se mantienen:
+
+- Node.js.
+- Express.
+- MongoDB Atlas.
+- Mongoose.
+- Passport.js.
+- bcrypt.
+- JWT.
+- Cookies HTTP Only.
+- Arquitectura por capas.
+- Autenticación mediante Passport.
+- Estrategias `register`, `login` y `current`.
+
+Se incorporan:
+
+- Middleware de autenticación reutilizable.
+- Middleware de autorización reutilizable.
+- Roles `user`, `organizer` y `admin`.
+- Protección de rutas según roles.
+- Diferenciación entre `401 Unauthorized` y `403 Forbidden`.
+- Control de ownership de eventos.
+- Protección del campo `organizer`.
+- Ruta administrativa `GET /api/users`.
+- Exclusión de contraseñas de las respuestas de usuarios.
+- Documentación de roles y matriz de permisos.
+- Pruebas funcionales de autenticación, autorización y ownership.
+
+La implementación mantiene la separación de responsabilidades:
 
 ```text
 Routes
+  ↓
+Middlewares
   ↓
 Controllers
   ↓
@@ -897,252 +883,3 @@ Models
   ↓
 MongoDB Atlas
 ```
-
-La incorporación de Passport está enfocada en el sistema de autenticación y no modifica el contrato existente del módulo de eventos.
-
----
-
-# Preparación para providers externos
-
-La configuración de Passport está centralizada en:
-
-```text
-src/config/passport.config.js
-```
-
-Actualmente se encuentran implementadas:
-
-```text
-register
-login
-current
-```
-
-La estructura permite incorporar posteriormente estrategias de autenticación mediante proveedores externos, por ejemplo:
-
-```text
-Google
-GitHub
-```
-
-sin tener que modificar la inicialización de Passport en:
-
-```text
-src/app.js
-```
-
-De esta manera, el proyecto queda preparado para futuras ampliaciones de autenticación y autorización.
-
----
-
-# Casos de prueba
-
-Antes de entregar la Pre-entrega 4 se deben comprobar los siguientes casos.
-
-## 1. Flujo completo
-
-```text
-Registro exitoso
-      ↓
-Login exitoso
-      ↓
-/current → 200
-      ↓
-Logout
-      ↓
-/current → 401
-```
-
-## 2. Email duplicado
-
-Intentar registrar un usuario utilizando un email que ya existe.
-
-Resultado esperado:
-
-```text
-409 Conflict
-```
-
-```json
-{
-    "status": "error",
-    "message": "El email ya está registrado"
-}
-```
-
-## 3. Login con credenciales inválidas
-
-Probar con:
-
-- Email inexistente.
-- Contraseña incorrecta.
-
-Resultado esperado:
-
-```text
-401 Unauthorized
-```
-
-```json
-{
-    "status": "error",
-    "message": "Credenciales inválidas"
-}
-```
-
-## 4. `/current` sin cookie
-
-Realizar:
-
-```http
-GET /api/sessions/current
-```
-
-sin la cookie `currentUser`.
-
-Resultado esperado:
-
-```text
-401 Unauthorized
-```
-
-## 5. `/current` con token manipulado
-
-Modificar el JWT almacenado en `currentUser` y realizar nuevamente:
-
-```http
-GET /api/sessions/current
-```
-
-Resultado esperado:
-
-```text
-401 Unauthorized
-```
-
----
-
-# Prueba del JWT
-
-Después de realizar un login exitoso, la cookie:
-
-```text
-currentUser
-```
-
-contiene el JWT.
-
-El payload debe ser conceptualmente:
-
-```json
-{
-    "id": "665f2a...",
-    "email": "ana@mail.com",
-    "role": "user"
-}
-```
-
-No debe contener:
-
-```text
-password
-first_name
-last_name
-```
-
-La contraseña permanece almacenada únicamente como hash en MongoDB.
-
----
-
-# Git
-
-Los cambios de la Pre-entrega 4 se organizan mediante commits separados por responsabilidad.
-
-Ejemplos utilizados durante la implementación:
-
-```bash
-git add package.json package-lock.json
-git commit -m "chore: add Passport authentication dependencies"
-```
-
-```bash
-git add src/config/passport.config.js
-git commit -m "feat: add Passport register strategy"
-```
-
-```bash
-git add src/app.js
-git commit -m "refactor: initialize Passport in app"
-```
-
-```bash
-git add src/routes/sessions.router.js
-git commit -m "refactor: integrate Passport into register route"
-```
-
-```bash
-git add src/controllers/sessions.controller.js
-git commit -m "refactor: update register controller for Passport"
-```
-
-Para los cambios posteriores de login y current pueden utilizarse commits específicos que describan esas responsabilidades.
-
-Antes de subir los cambios:
-
-```bash
-git status
-```
-
-Verificar que no aparezca:
-
-```text
-.env
-node_modules/
-```
-
-Finalmente:
-
-```bash
-git push
-```
-
----
-
-# Repositorio
-
-Repositorio público:
-
-```text
-https://github.com/ha3nebal/Pre-entrega-backend2
-```
-
----
-
-# Estado de la Pre-entrega 4
-
-La Pre-entrega 4 incorpora **Passport.js como capa centralizada de autenticación**, manteniendo el contrato externo de la Pre-entrega 3.
-
-Se mantienen:
-
-- Node.js.
-- Express.
-- MongoDB Atlas.
-- Mongoose.
-- bcrypt.
-- JWT.
-- Cookies HTTP Only.
-- Arquitectura por capas.
-- Rutas existentes.
-- Respuestas principales de la API.
-
-Se incorporan:
-
-- Passport.js.
-- Estrategia `register`.
-- Estrategia `login`.
-- Estrategia `current`.
-- Inicialización de Passport en `app.js`.
-- Configuración centralizada en `src/config/passport.config.js`.
-- Preparación para futuros providers externos como Google y GitHub.
-
-El JWT continúa siendo generado por el **controller después de una autenticación exitosa**, y Passport se encarga de centralizar las estrategias de autenticación.
