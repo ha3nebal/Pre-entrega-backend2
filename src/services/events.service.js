@@ -67,7 +67,11 @@ export const updateEvent = async (id, eventData, user) => {
         throw error;
     }
 
-    return await eventRepository.updateEvent(id, eventData);
+    const updateData = { ...eventData };
+
+    delete updateData.organizer;
+
+    return await eventRepository.updateEvent(id, updateData);
 
 };
 

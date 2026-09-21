@@ -6,6 +6,7 @@ import "./config/passport.config.js";
 
 import eventsRouter from "./routes/events.router.js";
 import sessionsRouter from "./routes/sessions.router.js";
+import usersRouter from "./routes/users.router.js";
 
 import { notFound } from "./middlewares/notFound.middleware.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
@@ -28,6 +29,8 @@ app.get("/api/health", (req, res) => {
 app.use("/api/events", eventsRouter);
 
 app.use("/api/sessions", sessionsRouter);
+
+app.use("/api/users", usersRouter);
 
 // Siempre al final
 app.use(notFound);
