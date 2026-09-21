@@ -18,7 +18,7 @@ export const getEventById = async (id) => {
 
 };
 
-export const createEvent = async (eventData) => {
+export const createEvent = async (eventData, user) => {
 
     if (!eventData.title) {
         throw new Error("El título es obligatorio.");
@@ -40,11 +40,13 @@ export const createEvent = async (eventData) => {
         throw new Error("La capacidad debe ser mayor que cero.");
     }
 
+    eventData.organizer = user.id;
+
     return await eventRepository.createEvent(eventData);
 
 };
 
-export const updateEvent = async (id, eventData) => {
+export const updateEvent = async (id, eventData, user) => {
 
     const event = await eventRepository.getEventById(id);
 
@@ -52,16 +54,42 @@ export const updateEvent = async (id, eventData) => {
         throw new Error("Evento no encontrado.");
     }
 
+    if (
+        user.role !== "admin" &&
+        event.organizer.toString() !== user.id
+    ) {
+        const error = new Error(
+            "No tenés permisos para modificar este evento."
+        );
+
+        error.statusCode = 403;
+
+        throw error;
+    }
+
     return await eventRepository.updateEvent(id, eventData);
 
 };
 
-export const deleteEvent = async (id) => {
+export const deleteEvent = async (id, user) => {
 
     const event = await eventRepository.getEventById(id);
 
     if (!event) {
         throw new Error("Evento no encontrado.");
+    }
+
+    if (
+        user.role !== "admin" &&
+        event.organizer.toString() !== user.id
+    ) {
+        const error = new Error(
+            "No tenés permisos para eliminar este evento."
+        );
+
+        error.statusCode = 403;
+
+        throw error;
     }
 
     return await eventRepository.deleteEvent(id);

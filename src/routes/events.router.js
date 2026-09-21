@@ -36,11 +36,21 @@ router.post(
 /**
  * Actualizar un evento existente
  */
-router.put("/:id", updateExistingEvent);
+router.put(
+    "/:id",
+    auth,
+    authorize("organizer", "admin"),
+    updateExistingEvent
+);
 
 /**
  * Eliminar un evento
  */
-router.delete("/:id", deleteExistingEvent);
+router.delete(
+    "/:id",
+    auth,
+    authorize("organizer", "admin"),
+    deleteExistingEvent
+);
 
 export default router;

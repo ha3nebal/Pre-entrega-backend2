@@ -41,7 +41,7 @@ export const getEvent = async (req, res, next) => {
 export const createNewEvent = async (req, res, next) => {
     try {
 
-        const event = await createEvent(req.body);
+        const event = await createEvent(req.body, req.user);
 
         sendSuccess(res, event, 201);
 
@@ -57,7 +57,7 @@ export const updateExistingEvent = async (req, res, next) => {
 
         const { id } = req.params;
 
-        const event = await updateEvent(id, req.body);
+        const event = await updateEvent(id, req.body, req.user);
 
         sendSuccess(res, event);
 
@@ -73,7 +73,7 @@ export const deleteExistingEvent = async (req, res, next) => {
 
         const { id } = req.params;
 
-        const event = await deleteEvent(id);
+        const event = await deleteEvent(id, req.user);
 
         sendSuccess(res, event);
 
