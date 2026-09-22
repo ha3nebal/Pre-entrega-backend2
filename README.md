@@ -1,29 +1,63 @@
 # API Backend - Plataforma de Eventos
 
-API REST desarrollada con Node.js, Express y MongoDB para la gestión de una plataforma de eventos.
+API REST desarrollada con Node.js, Express y MongoDB para gestionar usuarios, autenticación, eventos e inscripciones mediante tickets.
 
-El proyecto utiliza una arquitectura por capas, separando rutas, controladores, servicios, repositorios y DAO, e incorpora autenticación mediante JWT, autorización por roles y reglas de negocio para la entidad `Event`.
-
-## Tecnologías utilizadas
+## Tecnologías
 
 - Node.js
 - Express
 - MongoDB Atlas
 - Mongoose
-- Passport
 - JWT
+- Passport
 - bcrypt
-- cookie-parser
-- dotenv
-- Postman
-- Nodemon
+- Nodemailer
+- Gmail SMTP
 
-## Arquitectura del proyecto
+## Instalación
+
+```bash
+npm install
+```
+
+## Variables de entorno
+
+Crear un archivo `.env` en la raíz del proyecto:
+
+```env
+PORT=8080
+NODE_ENV=development
+MONGO_URL=TU_URI_REAL_DE_MONGODB_ATLAS
+JWT_SECRET=TU_CLAVE_SECRETA
+JWT_EXPIRES_IN=1h
+
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=TU_CORREO_GMAIL
+MAIL_PASS=TU_CONTRASEÑA_DE_APLICACION
+MAIL_FROM=TU_CORREO_GMAIL
+```
+
+No subir `.env` al repositorio. Las credenciales de Gmail deben mantenerse privadas.
+
+## Ejecución
+
+Modo desarrollo:
+
+```bash
+npm run dev
+```
+
+Modo producción:
+
+```bash
+npm start
+```
+
+## Arquitectura
 
 ```text
 src/
-├── app.js
-├── server.js
 ├── config/
 ├── controllers/
 ├── dao/
@@ -35,36 +69,23 @@ src/
 └── utils/
 ```
 
-### Separación de responsabilidades
+La lógica de negocio se mantiene principalmente en los servicios, los controladores gestionan las solicitudes HTTP y los DAO el acceso a MongoDB.
 
-- **Routes:** definen endpoints y middlewares.
-- **Controllers:** reciben solicitudes y construyen respuestas.
-- **Services:** contienen lógica de negocio y validaciones.
-- **Repositories:** abstraen el acceso a los DAO.
-- **DAO:** ejecutan operaciones sobre MongoDB mediante Mongoose.
-- **Models:** definen los esquemas de MongoDB.
-- **Middlewares:** autenticación, autorización y manejo de errores.
-- **Utils:** funciones reutilizables.
+## Autenticación
 
-# Autenticación y autorización
+La autenticación utiliza JWT almacenado en una cookie `httpOnly` llamada `currentUser`.
 
-La API utiliza JWT almacenado en una cookie `httpOnly` llamada:
-
-```text
-currentUser
-```
-
-El payload del JWT contiene:
+Payload conceptual:
 
 ```json
 {
-  "id": "665f2a...",
+  "id": "USER_ID",
   "email": "usuario@mail.com",
   "role": "user"
 }
 ```
 
-La contraseña nunca se incluye en el JWT.
+La contraseña no se incluye en el JWT.
 
 ## Roles
 
@@ -72,478 +93,30 @@ La contraseña nunca se incluye en el JWT.
 - `organizer`
 - `admin`
 
-| Acción | user | organizer | admin |
-|---|:---:|:---:|:---:|
-| Consultar eventos | ✅ | ✅ | ✅ |
-| Crear eventos | ❌ | ✅ | ✅ |
-| Modificar evento propio | ❌ | ✅ | ✅ |
-| Modificar evento de otro organizer | ❌ | ❌ | ✅ |
-| Cancelar evento propio | ❌ | ✅ | ✅ |
-| Consultar usuarios | ❌ | ❌ | ✅ |
+## Usuarios y sesiones
 
-La autorización se realiza mediante middleware y la propiedad del evento se verifica mediante el `organizer` asociado.
-
-# Pre-entrega 6 - Entidad Events y lógica de negocio
-
-La Pre-entrega 6 incorpora la entidad `Event`, CRUD principal, reglas de negocio, control de propiedad, estados, filtros, paginación y ordenamiento.
-
-## Modelo Event
-
-| Campo | Tipo | Reglas |
-|---|---|---|
-| `title` | String | Obligatorio |
-| `description` | String | Obligatorio |
-| `category` | String | Obligatorio |
-| `date` | Date | Obligatorio y futura al crear |
-| `location` | String | Obligatorio |
-| `capacity` | Number | Mayor que 0 |
-| `price` | Number | Mayor o igual a 0 |
-| `status` | String | `draft`, `published`, `cancelled`, `finished` |
-| `organizer` | ObjectId | Referencia a `User` |
-
-`organizer` es una referencia de MongoDB:
-
-```js
-organizer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
-}
-```
-
-El usuario no se encuentra embebido dentro del evento.
-
-# Endpoints de Events
-
-Base URL:
-
-```text
-http://localhost:8080/api/events
-```
-
-## Crear evento
-
-```http
-POST /api/events
-```
-
-Requiere autenticación y roles `organizer` o `admin`.
-
-Ejemplo:
-
-```json
-{
-  "title": "Workshop Backend",
-  "description": "Evento de desarrollo backend",
-  "category": "workshop",
-  "date": "2026-12-20T19:00:00.000Z",
-  "location": "Viña del Mar",
-  "capacity": 50,
-  "price": 15000
-}
-```
-
-El `organizer` se asigna automáticamente desde el usuario autenticado. El cliente no puede establecer manualmente `organizer` ni `status`.
-
-Los nuevos eventos comienzan con:
-
-```text
-status: draft
-```
-
-Respuesta exitosa:
-
-```text
-201 Created
-```
-
-## Listar eventos
-
-```http
-GET /api/events
-```
-
-Es público y utiliza paginación.
-
-Respuesta:
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "data": [],
-    "page": 1,
-    "limit": 10,
-    "total": 0,
-    "totalPages": 0
-  }
-}
-```
-
-### Filtros
-
-Por estado:
-
-```text
-GET /api/events?status=published
-```
-
-Por categoría:
-
-```text
-GET /api/events?category=workshop
-```
-
-Por ubicación:
-
-```text
-GET /api/events?location=Viña%20del%20Mar
-```
-
-Por fecha inicial:
-
-```text
-GET /api/events?dateFrom=2026-10-01
-```
-
-Por fecha final:
-
-```text
-GET /api/events?dateTo=2026-12-31
-```
-
-Por rango:
-
-```text
-GET /api/events?dateFrom=2026-10-01&dateTo=2026-12-31
-```
-
-### Paginación
-
-```text
-GET /api/events?page=2&limit=5
-```
-
-Respuesta:
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "data": [],
-    "page": 2,
-    "limit": 5,
-    "total": 10,
-    "totalPages": 2
-  }
-}
-```
-
-### Ordenamiento
-
-Ascendente por fecha:
-
-```text
-GET /api/events?sort=date
-```
-
-Descendente:
-
-```text
-GET /api/events?sort=-date
-```
-
-### Filtros combinados
-
-Ejemplo P6:
-
-```text
-GET /api/events?status=published&category=workshop&page=1&limit=5
-```
-
-También se pueden combinar con rango de fechas y ordenamiento:
-
-```text
-GET /api/events?status=published&category=workshop&dateFrom=2026-10-01&dateTo=2026-12-31&page=1&limit=5&sort=date
-```
-
-## Obtener evento por ID
-
-```http
-GET /api/events/:id
-```
-
-Es público.
-
-Si no existe:
-
-```text
-404 Not Found
-```
-
-```json
-{
-  "status": "error",
-  "message": "Evento no encontrado."
-}
-```
-
-## Modificar evento
-
-```http
-PUT /api/events/:id
-```
-
-Requiere autenticación.
-
-Un `organizer` puede modificar únicamente sus propios eventos. Un `admin` puede modificar eventos de otros organizers.
-
-Ejemplo:
-
-```json
-{
-  "title": "Workshop Backend actualizado",
-  "description": "Descripción actualizada",
-  "category": "workshop",
-  "date": "2026-12-20T19:00:00.000Z",
-  "location": "Viña del Mar",
-  "capacity": 60,
-  "price": 18000
-}
-```
-
-No se pueden modificar mediante `PUT`:
-
-```text
-organizer
-status
-```
-
-Los eventos cancelados no pueden modificarse.
-
-## Cambiar estado
-
-```http
-PATCH /api/events/:id/status
-```
-
-Requiere autenticación y roles `organizer` o `admin`.
-
-Body:
-
-```json
-{
-  "status": "published"
-}
-```
-
-Estados válidos:
-
-```text
-draft
-published
-cancelled
-finished
-```
-
-### Cancelar evento
-
-La cancelación se realiza mediante:
-
-```http
-PATCH /api/events/:id/status
-```
-
-```json
-{
-  "status": "cancelled"
-}
-```
-
-La cancelación es lógica: el evento no se elimina físicamente de MongoDB.
-
-No existe:
-
-```text
-DELETE /api/events/:id
-```
-
-# Reglas de negocio
-
-La lógica de negocio se encuentra principalmente en:
-
-```text
-src/services/events.service.js
-```
-
-### Creación
-
-- `title`, `description`, `category`, `date` y `location` son obligatorios.
-- `capacity` debe ser mayor que 0.
-- `price` debe ser mayor o igual a 0.
-- La fecha debe ser futura.
-- El `organizer` se obtiene del usuario autenticado.
-- El estado inicial es `draft`.
-
-### Actualización
-
-- Un organizer solo puede modificar eventos propios.
-- Un admin puede modificar eventos de otros organizers.
-- Un evento cancelado no puede modificarse.
-- `capacity` debe ser mayor que 0.
-- `price` no puede ser negativo.
-- Una nueva fecha debe ser válida y futura.
-- `organizer` no puede cambiarse desde el body.
-- `status` no se modifica mediante `PUT`.
-
-### Estados
-
-Los estados permitidos son:
-
-```text
-draft
-published
-cancelled
-finished
-```
-
-Un evento cancelado no puede volver a cambiar de estado.
-
-No se permite publicar un evento finalizado o cancelado.
-
-# Códigos HTTP principales
-
-| Código | Significado |
-|---:|---|
-| `200` | Operación exitosa |
-| `201` | Recurso creado |
-| `400` | Error de validación o solicitud |
-| `401` | No autenticado |
-| `403` | Sin permisos |
-| `404` | Evento no encontrado |
-| `500` | Error interno |
-
-# Validaciones comprobadas
-
-## Capacidad inválida
-
-```json
-{
-  "capacity": 0
-}
-```
-
-Respuesta:
-
-```text
-400 Bad Request
-```
-
-```json
-{
-  "status": "error",
-  "message": "La capacidad debe ser mayor que cero."
-}
-```
-
-## Precio negativo
-
-```json
-{
-  "price": -1000
-}
-```
-
-Respuesta:
-
-```text
-400 Bad Request
-```
-
-```json
-{
-  "status": "error",
-  "message": "El precio no puede ser negativo."
-}
-```
-
-## Fecha pasada
-
-Respuesta:
-
-```text
-400 Bad Request
-```
-
-```json
-{
-  "status": "error",
-  "message": "La fecha del evento debe ser futura."
-}
-```
-
-## Organizer modificando evento ajeno
-
-Respuesta:
-
-```text
-403 Forbidden
-```
-
-```json
-{
-  "status": "error",
-  "message": "No tenés permisos para modificar este evento."
-}
-```
-
-# Sessions
-
-## Registro
+### Registrar usuario
 
 ```http
 POST /api/sessions/register
 ```
 
-Ejemplo:
+Campos requeridos:
 
-```json
-{
-  "first_name": "Ana",
-  "last_name": "Pérez",
-  "email": "ana@mail.com",
-  "password": "Secreta123"
-}
-```
+- `first_name`
+- `last_name`
+- `email`
+- `password`
 
-El rol por defecto es `user` y no puede manipularse desde el registro público.
+La contraseña se almacena utilizando bcrypt. El rol inicial es `user` y no puede ser manipulado desde el registro público.
 
-Las contraseñas se almacenan utilizando `bcrypt`.
-
-## Login
+### Login
 
 ```http
 POST /api/sessions/login
 ```
 
-Ejemplo:
-
-```json
-{
-  "email": "ana@mail.com",
-  "password": "Secreta123"
-}
-```
-
-Después de un login exitoso se genera un JWT y se almacena en la cookie:
-
-```text
-currentUser
-```
-
-La cookie es `httpOnly`.
-
-## Usuario actual
+### Usuario actual
 
 ```http
 GET /api/sessions/current
@@ -551,108 +124,227 @@ GET /api/sessions/current
 
 Requiere autenticación.
 
-## Logout
+### Logout
 
 ```http
 POST /api/sessions/logout
 ```
 
-# Users
+## Eventos
 
-## Obtener usuarios
-
-```http
-GET /api/users
-```
-
-Requiere rol `admin`.
-
-Las contraseñas no se exponen en la respuesta.
-
-# Health Check
+### Listar eventos
 
 ```http
-GET /api/health
+GET /api/events
 ```
 
-Respuesta esperada:
+### Obtener evento
+
+```http
+GET /api/events/:id
+```
+
+### Crear evento
+
+```http
+POST /api/events
+```
+
+Requiere autenticación y rol `organizer` o `admin`.
+
+### Actualizar evento
+
+```http
+PUT /api/events/:id
+```
+
+### Cambiar estado
+
+```http
+PATCH /api/events/:id/status
+```
+
+Estados:
+
+- `draft`
+- `published`
+- `cancelled`
+- `finished`
+
+## Tickets e inscripciones
+
+### Crear inscripción
+
+```http
+POST /api/events/:eid/tickets
+```
+
+Requiere autenticación.
+
+Body:
+
+```json
+{
+  "quantity": 2
+}
+```
+
+El sistema valida:
+
+1. Existencia del evento.
+2. Evento publicado.
+3. Evento no cancelado ni finalizado.
+4. Cantidad entera mayor que cero.
+5. Ausencia de inscripción activa del usuario para el mismo evento.
+6. Capacidad disponible suficiente.
+
+### Regla de capacidad
+
+Solo los tickets activos ocupan cupos. Los tickets `cancelled` no ocupan capacidad.
+
+Ejemplo:
+
+```text
+Capacidad: 10
+Tickets activos: 6
+Disponibles: 4
+```
+
+Si la cantidad solicitada supera los cupos disponibles, la inscripción es rechazada.
+
+### Estados de ticket
+
+- `confirmed`
+- `pending`
+- `cancelled`
+
+Los tickets cancelados no se eliminan físicamente.
+
+### Mis tickets
+
+```http
+GET /api/tickets/my-tickets
+```
+
+Requiere autenticación.
+
+Devuelve únicamente los tickets del usuario autenticado e incluye información básica del evento:
+
+- título
+- fecha
+- ubicación
+
+### Tickets de un evento
+
+```http
+GET /api/events/:eid/tickets
+```
+
+Permisos:
+
+- `admin`: cualquier evento.
+- `organizer`: únicamente sus propios eventos.
+- `user`: sin permiso.
+
+### Cancelar ticket
+
+```http
+PATCH /api/tickets/:tid/cancel
+```
+
+Puede cancelar el propietario del ticket o un administrador.
+
+Al cancelar:
+
+- `status` pasa a `cancelled`;
+- se registra `cancelledAt`;
+- el ticket permanece almacenado;
+- la cantidad deja de ocupar capacidad.
+
+## Código de reserva
+
+Cada ticket confirmado genera un código único, por ejemplo:
+
+```text
+RES-1790048513811-F2DZR3
+```
+
+## Confirmación por correo
+
+Después de una inscripción confirmada, Nodemailer envía un correo mediante Gmail SMTP.
+
+El correo incluye:
+
+- evento;
+- fecha;
+- ubicación;
+- cantidad;
+- código de reserva.
+
+Variables:
+
+```env
+MAIL_HOST
+MAIL_PORT
+MAIL_USER
+MAIL_PASS
+MAIL_FROM
+```
+
+Las credenciales nunca se escriben directamente en el código.
+
+## Flujo de inscripción
+
+```text
+Usuario autenticado
+        │
+        ▼
+POST /api/events/:eid/tickets
+        │
+        ▼
+Validaciones del evento y usuario
+        │
+        ▼
+Control de capacidad
+        │
+        ▼
+Creación del ticket
+        │
+        ▼
+status: confirmed
+        │
+        ▼
+Correo de confirmación
+```
+
+## Respuestas
+
+Éxito:
 
 ```json
 {
   "status": "success",
-  "message": "Servidor activo"
+  "payload": {}
 }
 ```
 
-# Variables de entorno
+Error:
 
-Crear `.env` en la raíz:
-
-```env
-PORT=8080
-MONGO_URL=mongodb+srv://<usuario>:<password>@<cluster>/<database>
-JWT_SECRET=<secret>
+```json
+{
+  "status": "error",
+  "message": "Descripción del error"
+}
 ```
 
-No subir `.env` a GitHub.
+## Seguridad
 
-El archivo `.env.example` sirve como referencia para las variables necesarias.
+No subir al repositorio:
 
-# Instalación
+- `.env`
+- credenciales de MongoDB Atlas
+- contraseñas de aplicación de Gmail
+- secretos JWT
+- `node_modules`
 
-Clonar el repositorio:
-
-```bash
-git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
-```
-
-Entrar al proyecto:
-
-```bash
-cd Pre-entrega-backend2
-```
-
-Instalar dependencias:
-
-```bash
-npm install
-```
-
-Configurar `.env`.
-
-Desarrollo:
-
-```bash
-npm run dev
-```
-
-Producción:
-
-```bash
-npm start
-```
-
-# Pruebas realizadas para P6
-
-Se comprobaron los siguientes escenarios:
-
-- Usuario normal intentando crear evento → `403`.
-- Organizer creando evento → `201`.
-- Fecha pasada → `400`.
-- Capacidad igual a `0` → `400`.
-- Precio negativo → `400`.
-- Organizer modificando su propio evento → `200`.
-- Organizer modificando evento de otro organizer → `403`.
-- Admin modificando evento de otro organizer → `200`.
-- Cambio de estado `draft → published` → `200`.
-- Cancelación de evento → `200`.
-- Evento cancelado intentando cambiar de estado → `400`.
-- Evento inexistente → `404`.
-- Listado con filtros y paginación → `200`.
-- Eliminación física de eventos → no disponible.
-
-# Autor
-
-Proyecto desarrollado como parte del curso Backend de Coderhouse.
-
-**Anibal Allendes**
+El repositorio debe contener `.env.example` con valores de ejemplo, nunca secretos reales.
