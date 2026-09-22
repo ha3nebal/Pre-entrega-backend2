@@ -5,7 +5,7 @@ import {
     getEvent,
     createNewEvent,
     updateExistingEvent,
-    deleteExistingEvent
+    updateEventStatusController
 } from "../controllers/events.controller.js";
 
 import { auth } from "../middlewares/auth.middleware.js";
@@ -43,14 +43,11 @@ router.put(
     updateExistingEvent
 );
 
-/**
- * Eliminar un evento
- */
-router.delete(
-    "/:id",
+router.patch(
+    "/:id/status",
     auth,
     authorize("organizer", "admin"),
-    deleteExistingEvent
+    updateEventStatusController
 );
 
 export default router;

@@ -3,7 +3,7 @@ import {
     getEventById,
     createEvent,
     updateEvent,
-    deleteEvent
+    updateEventStatus
 } from "../services/events.service.js";
 
 import { sendSuccess } from "../utils/response.js";
@@ -11,7 +11,7 @@ import { sendSuccess } from "../utils/response.js";
 export const getEvents = async (req, res, next) => {
     try {
 
-        const events = await getAllEvents();
+        const events = await getAllEvents(req.query);
 
         sendSuccess(res, events);
 
@@ -68,12 +68,17 @@ export const updateExistingEvent = async (req, res, next) => {
     }
 };
 
-export const deleteExistingEvent = async (req, res, next) => {
+export const updateEventStatusController = async (req, res, next) => {
     try {
 
         const { id } = req.params;
+        const { status } = req.body;
 
-        const event = await deleteEvent(id, req.user);
+        const event = await updateEventStatus(
+            id,
+            status,
+            req.user
+        );
 
         sendSuccess(res, event);
 

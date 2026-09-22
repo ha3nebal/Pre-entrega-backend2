@@ -1,242 +1,503 @@
-# Pre-entrega Backend 2 — Roles y autorización
+# API Backend - Plataforma de Eventos
 
-API REST desarrollada con **Node.js, Express, MongoDB y Mongoose** para la gestión de usuarios y eventos.
+API REST desarrollada con Node.js, Express y MongoDB para la gestión de una plataforma de eventos.
 
-Esta etapa corresponde a la **Pre-entrega 5: Roles y autorización** del curso **Backend de Coderhouse**.
-
-En esta entrega se incorpora un sistema de **autorización basada en roles**, utilizando los roles `user`, `organizer` y `admin`, junto con middleware reutilizable para proteger las rutas de acuerdo con los permisos correspondientes.
-
-El sistema mantiene la autenticación implementada anteriormente mediante **Passport.js, JWT, cookies HTTP Only y bcrypt**, y agrega una capa de autorización independiente para controlar el acceso a los recursos.
-
----
+El proyecto utiliza una arquitectura por capas, separando rutas, controladores, servicios, repositorios y DAO, e incorpora autenticación mediante JWT, autorización por roles y reglas de negocio para la entidad `Event`.
 
 ## Tecnologías utilizadas
 
 - Node.js
 - Express
-- JavaScript ES Modules
 - MongoDB Atlas
 - Mongoose
-- Passport.js
-- passport-local
-- passport-jwt
+- Passport
+- JWT
 - bcrypt
-- jsonwebtoken
 - cookie-parser
 - dotenv
-- Nodemon
 - Postman
+- Nodemon
 
----
-
-## Arquitectura
-
-El proyecto utiliza una arquitectura por capas:
+## Arquitectura del proyecto
 
 ```text
-Cliente / Postman
-       │
-       ▼
-    Routes
-       │
-       ▼
-  Middlewares
-       │
-       ├── Auth
-       └── Authorization
-       │
-       ▼
-  Controllers
-       │
-       ▼
-    Services
-       │
-       ▼
-  Repositories
-       │
-       ▼
-      DAO
-       │
-       ▼
-    Models
-       │
-       ▼
- MongoDB Atlas
+src/
+├── app.js
+├── server.js
+├── config/
+├── controllers/
+├── dao/
+├── middlewares/
+├── models/
+├── repositories/
+├── routes/
+├── services/
+└── utils/
 ```
 
-Archivos principales relacionados con autenticación y autorización:
+### Separación de responsabilidades
+
+- **Routes:** definen endpoints y middlewares.
+- **Controllers:** reciben solicitudes y construyen respuestas.
+- **Services:** contienen lógica de negocio y validaciones.
+- **Repositories:** abstraen el acceso a los DAO.
+- **DAO:** ejecutan operaciones sobre MongoDB mediante Mongoose.
+- **Models:** definen los esquemas de MongoDB.
+- **Middlewares:** autenticación, autorización y manejo de errores.
+- **Utils:** funciones reutilizables.
+
+# Autenticación y autorización
+
+La API utiliza JWT almacenado en una cookie `httpOnly` llamada:
 
 ```text
-src/middlewares/auth.middleware.js
-src/middlewares/authorize.middleware.js
-src/config/passport.config.js
-src/utils/jwt.js
-src/utils/hash.js
+currentUser
 ```
 
----
+El payload del JWT contiene:
 
-## Estructura del proyecto
+```json
+{
+  "id": "665f2a...",
+  "email": "usuario@mail.com",
+  "role": "user"
+}
+```
+
+La contraseña nunca se incluye en el JWT.
+
+## Roles
+
+- `user`
+- `organizer`
+- `admin`
+
+| Acción | user | organizer | admin |
+|---|:---:|:---:|:---:|
+| Consultar eventos | ✅ | ✅ | ✅ |
+| Crear eventos | ❌ | ✅ | ✅ |
+| Modificar evento propio | ❌ | ✅ | ✅ |
+| Modificar evento de otro organizer | ❌ | ❌ | ✅ |
+| Cancelar evento propio | ❌ | ✅ | ✅ |
+| Consultar usuarios | ❌ | ❌ | ✅ |
+
+La autorización se realiza mediante middleware y la propiedad del evento se verifica mediante el `organizer` asociado.
+
+# Pre-entrega 6 - Entidad Events y lógica de negocio
+
+La Pre-entrega 6 incorpora la entidad `Event`, CRUD principal, reglas de negocio, control de propiedad, estados, filtros, paginación y ordenamiento.
+
+## Modelo Event
+
+| Campo | Tipo | Reglas |
+|---|---|---|
+| `title` | String | Obligatorio |
+| `description` | String | Obligatorio |
+| `category` | String | Obligatorio |
+| `date` | Date | Obligatorio y futura al crear |
+| `location` | String | Obligatorio |
+| `capacity` | Number | Mayor que 0 |
+| `price` | Number | Mayor o igual a 0 |
+| `status` | String | `draft`, `published`, `cancelled`, `finished` |
+| `organizer` | ObjectId | Referencia a `User` |
+
+`organizer` es una referencia de MongoDB:
+
+```js
+organizer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+}
+```
+
+El usuario no se encuentra embebido dentro del evento.
+
+# Endpoints de Events
+
+Base URL:
 
 ```text
-Pre-entrega-backend2/
-│
-├── src/
-│   ├── app.js
-│   ├── server.js
-│   │
-│   ├── config/
-│   │   ├── db.js
-│   │   ├── env.js
-│   │   └── passport.config.js
-│   │
-│   ├── controllers/
-│   │   ├── events.controller.js
-│   │   ├── sessions.controller.js
-│   │   └── users.controller.js
-│   │
-│   ├── services/
-│   │   ├── events.service.js
-│   │   ├── sessions.service.js
-│   │   └── users.service.js
-│   │
-│   ├── repositories/
-│   │   ├── event.repository.js
-│   │   └── user.repository.js
-│   │
-│   ├── dao/
-│   │   ├── EventDAO.js
-│   │   └── UserDAO.js
-│   │
-│   ├── models/
-│   │   ├── Event.js
-│   │   └── User.js
-│   │
-│   ├── routes/
-│   │   ├── events.router.js
-│   │   ├── sessions.router.js
-│   │   └── users.router.js
-│   │
-│   ├── middlewares/
-│   │   ├── auth.middleware.js
-│   │   ├── authorize.middleware.js
-│   │   ├── error.middleware.js
-│   │   └── notFound.middleware.js
-│   │
-│   └── utils/
-│       ├── constants.js
-│       ├── hash.js
-│       ├── jwt.js
-│       ├── logger.js
-│       └── response.js
-│
-├── .env.example
-├── .gitignore
-├── package.json
-├── package-lock.json
-└── README.md
+http://localhost:8080/api/events
 ```
 
----
-
-## Instalación
-
-```bash
-git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
-cd Pre-entrega-backend2
-npm install
-```
-
----
-
-## Variables de entorno
-
-Crear un archivo `.env` en la raíz:
-
-```env
-PORT=8080
-NODE_ENV=development
-MONGO_URL=tu_uri_de_mongodb_atlas
-JWT_SECRET=tu_clave_secreta
-JWT_EXPIRES_IN=1h
-```
-
-| Variable | Descripción |
-|---|---|
-| `PORT` | Puerto utilizado por el servidor. |
-| `NODE_ENV` | Entorno de ejecución. |
-| `MONGO_URL` | URI de conexión a MongoDB Atlas. |
-| `JWT_SECRET` | Clave utilizada para firmar y verificar JWT. |
-| `JWT_EXPIRES_IN` | Tiempo de expiración del JWT. |
-
-El archivo `.env` no debe subirse al repositorio.
-
----
-
-## Ejecución
-
-Modo desarrollo:
-
-```bash
-npm run dev
-```
-
-Modo producción:
-
-```bash
-npm start
-```
-
-Por defecto:
-
-```text
-http://localhost:8080
-```
-
-Health check:
+## Crear evento
 
 ```http
-GET /api/health
+POST /api/events
+```
+
+Requiere autenticación y roles `organizer` o `admin`.
+
+Ejemplo:
+
+```json
+{
+  "title": "Workshop Backend",
+  "description": "Evento de desarrollo backend",
+  "category": "workshop",
+  "date": "2026-12-20T19:00:00.000Z",
+  "location": "Viña del Mar",
+  "capacity": 50,
+  "price": 15000
+}
+```
+
+El `organizer` se asigna automáticamente desde el usuario autenticado. El cliente no puede establecer manualmente `organizer` ni `status`.
+
+Los nuevos eventos comienzan con:
+
+```text
+status: draft
+```
+
+Respuesta exitosa:
+
+```text
+201 Created
+```
+
+## Listar eventos
+
+```http
+GET /api/events
+```
+
+Es público y utiliza paginación.
+
+Respuesta:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "data": [],
+    "page": 1,
+    "limit": 10,
+    "total": 0,
+    "totalPages": 0
+  }
+}
+```
+
+### Filtros
+
+Por estado:
+
+```text
+GET /api/events?status=published
+```
+
+Por categoría:
+
+```text
+GET /api/events?category=workshop
+```
+
+Por ubicación:
+
+```text
+GET /api/events?location=Viña%20del%20Mar
+```
+
+Por fecha inicial:
+
+```text
+GET /api/events?dateFrom=2026-10-01
+```
+
+Por fecha final:
+
+```text
+GET /api/events?dateTo=2026-12-31
+```
+
+Por rango:
+
+```text
+GET /api/events?dateFrom=2026-10-01&dateTo=2026-12-31
+```
+
+### Paginación
+
+```text
+GET /api/events?page=2&limit=5
 ```
 
 Respuesta:
 
 ```json
 {
-    "status": "ok",
-    "message": "Servidor activo"
+  "status": "success",
+  "payload": {
+    "data": [],
+    "page": 2,
+    "limit": 5,
+    "total": 10,
+    "totalPages": 2
+  }
 }
 ```
 
----
+### Ordenamiento
 
-# Autenticación
-
-La autenticación utiliza **Passport.js, JWT, bcrypt y cookies HTTP Only**.
-
-Estrategias implementadas:
+Ascendente por fecha:
 
 ```text
-register
-login
-current
+GET /api/events?sort=date
 ```
 
-Passport se inicializa mediante:
-
-```js
-app.use(passport.initialize());
-```
-
-Las estrategias están centralizadas en:
+Descendente:
 
 ```text
-src/config/passport.config.js
+GET /api/events?sort=-date
 ```
 
-La API utiliza autenticación stateless mediante JWT.
+### Filtros combinados
 
----
+Ejemplo P6:
+
+```text
+GET /api/events?status=published&category=workshop&page=1&limit=5
+```
+
+También se pueden combinar con rango de fechas y ordenamiento:
+
+```text
+GET /api/events?status=published&category=workshop&dateFrom=2026-10-01&dateTo=2026-12-31&page=1&limit=5&sort=date
+```
+
+## Obtener evento por ID
+
+```http
+GET /api/events/:id
+```
+
+Es público.
+
+Si no existe:
+
+```text
+404 Not Found
+```
+
+```json
+{
+  "status": "error",
+  "message": "Evento no encontrado."
+}
+```
+
+## Modificar evento
+
+```http
+PUT /api/events/:id
+```
+
+Requiere autenticación.
+
+Un `organizer` puede modificar únicamente sus propios eventos. Un `admin` puede modificar eventos de otros organizers.
+
+Ejemplo:
+
+```json
+{
+  "title": "Workshop Backend actualizado",
+  "description": "Descripción actualizada",
+  "category": "workshop",
+  "date": "2026-12-20T19:00:00.000Z",
+  "location": "Viña del Mar",
+  "capacity": 60,
+  "price": 18000
+}
+```
+
+No se pueden modificar mediante `PUT`:
+
+```text
+organizer
+status
+```
+
+Los eventos cancelados no pueden modificarse.
+
+## Cambiar estado
+
+```http
+PATCH /api/events/:id/status
+```
+
+Requiere autenticación y roles `organizer` o `admin`.
+
+Body:
+
+```json
+{
+  "status": "published"
+}
+```
+
+Estados válidos:
+
+```text
+draft
+published
+cancelled
+finished
+```
+
+### Cancelar evento
+
+La cancelación se realiza mediante:
+
+```http
+PATCH /api/events/:id/status
+```
+
+```json
+{
+  "status": "cancelled"
+}
+```
+
+La cancelación es lógica: el evento no se elimina físicamente de MongoDB.
+
+No existe:
+
+```text
+DELETE /api/events/:id
+```
+
+# Reglas de negocio
+
+La lógica de negocio se encuentra principalmente en:
+
+```text
+src/services/events.service.js
+```
+
+### Creación
+
+- `title`, `description`, `category`, `date` y `location` son obligatorios.
+- `capacity` debe ser mayor que 0.
+- `price` debe ser mayor o igual a 0.
+- La fecha debe ser futura.
+- El `organizer` se obtiene del usuario autenticado.
+- El estado inicial es `draft`.
+
+### Actualización
+
+- Un organizer solo puede modificar eventos propios.
+- Un admin puede modificar eventos de otros organizers.
+- Un evento cancelado no puede modificarse.
+- `capacity` debe ser mayor que 0.
+- `price` no puede ser negativo.
+- Una nueva fecha debe ser válida y futura.
+- `organizer` no puede cambiarse desde el body.
+- `status` no se modifica mediante `PUT`.
+
+### Estados
+
+Los estados permitidos son:
+
+```text
+draft
+published
+cancelled
+finished
+```
+
+Un evento cancelado no puede volver a cambiar de estado.
+
+No se permite publicar un evento finalizado o cancelado.
+
+# Códigos HTTP principales
+
+| Código | Significado |
+|---:|---|
+| `200` | Operación exitosa |
+| `201` | Recurso creado |
+| `400` | Error de validación o solicitud |
+| `401` | No autenticado |
+| `403` | Sin permisos |
+| `404` | Evento no encontrado |
+| `500` | Error interno |
+
+# Validaciones comprobadas
+
+## Capacidad inválida
+
+```json
+{
+  "capacity": 0
+}
+```
+
+Respuesta:
+
+```text
+400 Bad Request
+```
+
+```json
+{
+  "status": "error",
+  "message": "La capacidad debe ser mayor que cero."
+}
+```
+
+## Precio negativo
+
+```json
+{
+  "price": -1000
+}
+```
+
+Respuesta:
+
+```text
+400 Bad Request
+```
+
+```json
+{
+  "status": "error",
+  "message": "El precio no puede ser negativo."
+}
+```
+
+## Fecha pasada
+
+Respuesta:
+
+```text
+400 Bad Request
+```
+
+```json
+{
+  "status": "error",
+  "message": "La fecha del evento debe ser futura."
+}
+```
+
+## Organizer modificando evento ajeno
+
+Respuesta:
+
+```text
+403 Forbidden
+```
+
+```json
+{
+  "status": "error",
+  "message": "No tenés permisos para modificar este evento."
+}
+```
+
+# Sessions
 
 ## Registro
 
@@ -244,36 +505,20 @@ La API utiliza autenticación stateless mediante JWT.
 POST /api/sessions/register
 ```
 
-Body:
+Ejemplo:
 
 ```json
 {
-    "first_name": "Ana",
-    "last_name": "González",
-    "email": "ana@mail.com",
-    "password": "Secreta123"
+  "first_name": "Ana",
+  "last_name": "Pérez",
+  "email": "ana@mail.com",
+  "password": "Secreta123"
 }
 ```
 
-El registro realiza validaciones, normalización de datos, comprobación de email duplicado y hash mediante bcrypt.
+El rol por defecto es `user` y no puede manipularse desde el registro público.
 
-El rol no se puede seleccionar libremente desde el registro público.
-
-Roles disponibles:
-
-```text
-user
-organizer
-admin
-```
-
-Rol por defecto:
-
-```text
-user
-```
-
----
+Las contraseñas se almacenan utilizando `bcrypt`.
 
 ## Login
 
@@ -281,65 +526,30 @@ user
 POST /api/sessions/login
 ```
 
-Body:
+Ejemplo:
 
 ```json
 {
-    "email": "ana@mail.com",
-    "password": "Secreta123"
+  "email": "ana@mail.com",
+  "password": "Secreta123"
 }
 ```
 
-Respuesta:
-
-```json
-{
-    "status": "success",
-    "message": "Login correcto"
-}
-```
-
-El JWT se almacena en la cookie:
+Después de un login exitoso se genera un JWT y se almacena en la cookie:
 
 ```text
 currentUser
 ```
 
-Payload conceptual:
+La cookie es `httpOnly`.
 
-```json
-{
-    "id": "665f2a...",
-    "email": "ana@mail.com",
-    "role": "user"
-}
-```
-
-El JWT no contiene `password`, `first_name` ni `last_name`.
-
----
-
-## Current User
+## Usuario actual
 
 ```http
 GET /api/sessions/current
 ```
 
-Requiere una cookie JWT válida.
-
-Sin sesión:
-
-```text
-401 Unauthorized
-```
-
-Con sesión válida:
-
-```text
-200 OK
-```
-
----
+Requiere autenticación.
 
 ## Logout
 
@@ -347,539 +557,102 @@ Con sesión válida:
 POST /api/sessions/logout
 ```
 
-Elimina la cookie `currentUser`.
+# Users
 
----
-
-# Roles
-
-El sistema utiliza tres roles:
-
-| Rol | Descripción |
-|---|---|
-| `user` | Usuario estándar de la plataforma. |
-| `organizer` | Usuario autorizado para gestionar sus propios eventos. |
-| `admin` | Usuario con permisos administrativos y capacidad de gestionar cualquier evento. |
-
----
-
-# Autorización basada en roles
-
-La autorización se implementa mediante:
-
-```text
-src/middlewares/authorize.middleware.js
-```
-
-Ejemplo:
-
-```js
-authorize("organizer", "admin")
-```
-
-o:
-
-```js
-authorize("admin")
-```
-
-El middleware verifica:
-
-```text
-req.user.role
-```
-
-Si no existe una sesión válida:
-
-```text
-401 Unauthorized
-```
-
-Si existe sesión pero el rol no tiene permiso:
-
-```text
-403 Forbidden
-```
-
----
-
-# Diferencia entre 401 y 403
-
-## 401 Unauthorized
-
-El usuario no está autenticado.
-
-Ejemplo:
-
-```text
-GET /api/sessions/current
-```
-
-sin cookie válida.
-
-```json
-{
-    "status": "error",
-    "message": "No autenticado"
-}
-```
-
----
-
-## 403 Forbidden
-
-El usuario está autenticado pero no posee el rol requerido.
-
-Ejemplo:
-
-```text
-user
-   ↓
-POST /api/events
-```
-
-Respuesta:
-
-```json
-{
-    "status": "error",
-    "message": "No tenés permisos para realizar esta acción"
-}
-```
-
----
-
-# Matriz de permisos
-
-| Acción | user | organizer | admin |
-|---|---:|---:|---:|
-| Consultar eventos | Sí | Sí | Sí |
-| Crear eventos | No | Sí | Sí |
-| Modificar sus propios eventos | No | Sí | Sí |
-| Eliminar sus propios eventos | No | Sí | Sí |
-| Modificar eventos de otros usuarios | No | No | Sí |
-| Eliminar eventos de otros usuarios | No | No | Sí |
-| Consultar todos los usuarios | No | No | Sí |
-
----
-
-# Eventos
-
-Base:
-
-```text
-/api/events
-```
-
-| Método | Endpoint | Autenticación | Roles | Descripción |
-|---|---|---|---|---|
-| GET | `/api/events` | No | Todos | Obtener eventos. |
-| GET | `/api/events/:id` | No | Todos | Obtener un evento. |
-| POST | `/api/events` | Sí | organizer, admin | Crear evento. |
-| PUT | `/api/events/:id` | Sí | organizer, admin | Modificar evento. |
-| DELETE | `/api/events/:id` | Sí | organizer, admin | Eliminar evento. |
-
----
-
-# Creación de eventos
-
-```http
-POST http://localhost:8080/api/events
-```
-
-Body:
-
-```json
-{
-    "title": "Evento de prueba",
-    "description": "Descripción del evento",
-    "date": "2026-10-15",
-    "location": "Viña del Mar",
-    "capacity": 50
-}
-```
-
-La ruta requiere:
-
-```text
-auth
-authorize("organizer", "admin")
-```
-
-El cliente no debe enviar `organizer`.
-
-El backend utiliza:
-
-```text
-req.user.id
-```
-
-para establecer automáticamente el propietario.
-
----
-
-# Ownership de eventos
-
-Cada evento tiene un propietario mediante el campo:
-
-```text
-organizer
-```
-
-Cuando un `organizer` modifica o elimina un evento, el Service verifica que el evento pertenezca al usuario autenticado.
-
-Si no es propietario:
-
-```text
-403 Forbidden
-```
-
-Un `admin` puede modificar o eliminar eventos independientemente de su propietario.
-
-El campo `organizer` tampoco puede modificarse enviándolo en el body de una actualización.
-
----
-
-# Ruta administrativa de usuarios
+## Obtener usuarios
 
 ```http
 GET /api/users
 ```
 
-Esta ruta requiere:
+Requiere rol `admin`.
 
-```text
-auth
-authorize("admin")
+Las contraseñas no se exponen en la respuesta.
+
+# Health Check
+
+```http
+GET /api/health
 ```
 
-Flujo:
+Respuesta esperada:
 
-```text
-GET /api/users
-      │
-      ▼
-    auth
-      │
-      ├── Sin sesión → 401
-      │
-      ▼
-authorize("admin")
-      │
-      ├── user → 403
-      ├── organizer → 403
-      └── admin → continúa
-                     │
-                     ▼
-               Users Controller
+```json
+{
+  "status": "success",
+  "message": "Servidor activo"
+}
 ```
 
-Arquitectura:
+# Variables de entorno
 
-```text
-users.router.js
-      ↓
-users.controller.js
-      ↓
-users.service.js
-      ↓
-user.repository.js
-      ↓
-UserDAO.js
-      ↓
-User
+Crear `.env` en la raíz:
+
+```env
+PORT=8080
+MONGO_URL=mongodb+srv://<usuario>:<password>@<cluster>/<database>
+JWT_SECRET=<secret>
 ```
 
-Las contraseñas se eliminan antes de enviar la respuesta.
+No subir `.env` a GitHub.
 
----
+El archivo `.env.example` sirve como referencia para las variables necesarias.
 
-# Rutas protegidas
+# Instalación
 
-## Current
-
-```text
-GET /api/sessions/current
-```
-
-Requiere:
-
-```text
-auth
-```
-
-## Crear evento
-
-```text
-POST /api/events
-```
-
-Requiere:
-
-```text
-auth
-authorize("organizer", "admin")
-```
-
-## Modificar evento
-
-```text
-PUT /api/events/:id
-```
-
-Requiere:
-
-```text
-auth
-authorize("organizer", "admin")
-```
-
-Además se aplica ownership:
-
-```text
-organizer → solamente sus propios eventos
-admin → cualquier evento
-```
-
-## Eliminar evento
-
-```text
-DELETE /api/events/:id
-```
-
-Requiere:
-
-```text
-auth
-authorize("organizer", "admin")
-```
-
-## Consultar usuarios
-
-```text
-GET /api/users
-```
-
-Requiere:
-
-```text
-auth
-authorize("admin")
-```
-
----
-
-# Seguridad
-
-El sistema implementa:
-
-- Contraseñas protegidas mediante bcrypt.
-- JWT firmado con una clave secreta.
-- JWT almacenado en cookie HTTP Only.
-- Middleware reutilizable de autenticación.
-- Middleware reutilizable de autorización.
-- Separación entre autenticación y autorización.
-- Mensaje genérico para credenciales inválidas.
-- No se incluye `password` en el JWT.
-- No se incluye `password` en las respuestas.
-- Rol `user` por defecto en registros públicos.
-- Protección de rutas según rol.
-- Control de ownership de eventos.
-- Protección del campo `organizer`.
-- `.env` excluido del repositorio.
-- `.env.example` sin credenciales reales.
-
----
-
-# Casos de prueba — Pre-entrega 5
-
-Las pruebas fueron realizadas utilizando Postman.
-
-| Prueba | Resultado |
-|---|---|
-| Sin sesión → `GET /api/users` | `401 Unauthorized` |
-| `user` → `GET /api/users` | `403 Forbidden` |
-| `admin` → `GET /api/users` | `200 OK` |
-| `user` → `POST /api/events` | `403 Forbidden` |
-| `organizer` → `POST /api/events` | `201 Created` |
-| Organizer modifica evento ajeno | `403 Forbidden` |
-| Admin modifica evento ajeno | `200 OK` |
-| Passwords en `/api/users` | No se exponen |
-| Organizer intenta cambiar `organizer` | Campo protegido |
-
----
-
-# Flujo de autorización
-
-```text
-Request
-   │
-   ▼
-Route
-   │
-   ▼
-auth
-   │
-   ├── Sin JWT → 401
-   │
-   ▼
-req.user
-   │
-   ▼
-authorize(...)
-   │
-   ├── Rol no permitido → 403
-   │
-   ▼
-Controller
-   │
-   ▼
-Service
-   │
-   ▼
-Ownership
-   │
-   ├── No propietario → 403
-   │
-   ▼
-Repository
-   │
-   ▼
-DAO
-   │
-   ▼
-MongoDB Atlas
-```
-
----
-
-# Modelo User
-
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `first_name` | String | Nombre del usuario. |
-| `last_name` | String | Apellido del usuario. |
-| `email` | String | Email único. |
-| `password` | String | Contraseña almacenada como hash bcrypt. |
-| `role` | String | Rol del usuario. |
-
-Roles:
-
-```text
-user
-organizer
-admin
-```
-
-Rol por defecto:
-
-```text
-user
-```
-
----
-
-# Modelo Event
-
-El modelo `Event` contiene información del evento y su propietario.
-
-El campo:
-
-```text
-organizer
-```
-
-utiliza una referencia hacia el modelo `User`.
-
-Esto permite relacionar cada evento con el usuario que lo creó.
-
----
-
-# Git
-
-Para revisar el estado:
+Clonar el repositorio:
 
 ```bash
-git status
+git clone https://github.com/ha3nebal/Pre-entrega-backend2.git
 ```
 
-Para revisar los commits:
+Entrar al proyecto:
 
 ```bash
-git log --oneline
+cd Pre-entrega-backend2
 ```
 
-Antes de subir cambios verificar que no aparezcan:
+Instalar dependencias:
 
-```text
-.env
-node_modules/
+```bash
+npm install
 ```
 
-Commit principal de la implementación de P5:
+Configurar `.env`.
 
-```text
-cf1b2b1 feat: implement role-based authorization
+Desarrollo:
+
+```bash
+npm run dev
 ```
 
----
+Producción:
 
-# Repositorio
-
-```text
-https://github.com/ha3nebal/Pre-entrega-backend2
+```bash
+npm start
 ```
 
----
+# Pruebas realizadas para P6
 
-# Estado de la Pre-entrega 5
+Se comprobaron los siguientes escenarios:
 
-La Pre-entrega 5 incorpora un sistema de **roles y autorización** sobre la API.
+- Usuario normal intentando crear evento → `403`.
+- Organizer creando evento → `201`.
+- Fecha pasada → `400`.
+- Capacidad igual a `0` → `400`.
+- Precio negativo → `400`.
+- Organizer modificando su propio evento → `200`.
+- Organizer modificando evento de otro organizer → `403`.
+- Admin modificando evento de otro organizer → `200`.
+- Cambio de estado `draft → published` → `200`.
+- Cancelación de evento → `200`.
+- Evento cancelado intentando cambiar de estado → `400`.
+- Evento inexistente → `404`.
+- Listado con filtros y paginación → `200`.
+- Eliminación física de eventos → no disponible.
 
-Se mantienen:
+# Autor
 
-- Node.js.
-- Express.
-- MongoDB Atlas.
-- Mongoose.
-- Passport.js.
-- bcrypt.
-- JWT.
-- Cookies HTTP Only.
-- Arquitectura por capas.
-- Autenticación mediante Passport.
-- Estrategias `register`, `login` y `current`.
+Proyecto desarrollado como parte del curso Backend de Coderhouse.
 
-Se incorporan:
-
-- Middleware de autenticación reutilizable.
-- Middleware de autorización reutilizable.
-- Roles `user`, `organizer` y `admin`.
-- Protección de rutas según roles.
-- Diferenciación entre `401 Unauthorized` y `403 Forbidden`.
-- Control de ownership de eventos.
-- Protección del campo `organizer`.
-- Ruta administrativa `GET /api/users`.
-- Exclusión de contraseñas de las respuestas de usuarios.
-- Documentación de roles y matriz de permisos.
-- Pruebas funcionales de autenticación, autorización y ownership.
-
-La implementación mantiene la separación de responsabilidades:
-
-```text
-Routes
-  ↓
-Middlewares
-  ↓
-Controllers
-  ↓
-Services
-  ↓
-Repositories
-  ↓
-DAO
-  ↓
-Models
-  ↓
-MongoDB Atlas
-```
+**Anibal Allendes**
