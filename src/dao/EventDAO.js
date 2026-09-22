@@ -99,11 +99,7 @@ class EventDAO {
             }
         );
     }
-
-    // Eliminar un evento
-    async delete(id) {
-        return await Event.findByIdAndDelete(id);
-    }
+    
 
 }
 
