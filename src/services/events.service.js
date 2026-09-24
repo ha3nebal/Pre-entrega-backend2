@@ -40,12 +40,11 @@ export const getEventById = async (id) => {
 
     const event = await eventRepository.getEventById(id);
 
-    if (!event) {
-        const error = new Error("Evento no encontrado.");
-        error.statusCode = 404;
-        throw error;
-    }
-
+   if (!event) {
+    const error = new Error("Evento no encontrado.");
+    error.statusCode = 404;
+    throw error;
+}
     return event;
 
 };
@@ -106,8 +105,10 @@ export const updateEvent = async (id, eventData, user) => {
     const event = await eventRepository.getEventById(id);
 
     if (!event) {
-        throw new Error("Evento no encontrado.");
-    }
+    const error = new Error("Evento no encontrado.");
+    error.statusCode = 404;
+    throw error;
+}
 
     if (event.status === "cancelled") {
     const error = new Error(
@@ -171,9 +172,11 @@ export const updateEventStatus = async (id, status, user) => {
 
     const event = await eventRepository.getEventById(id);
 
-    if (!event) {
-        throw new Error("Evento no encontrado.");
-    }
+   if (!event) {
+    const error = new Error("Evento no encontrado.");
+    error.statusCode = 404;
+    throw error;
+}
 
     if (
         user.role !== "admin" &&
