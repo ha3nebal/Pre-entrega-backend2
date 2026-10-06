@@ -5,13 +5,13 @@ const ticketSchema = new mongoose.Schema(
         user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true
+            required: [true, "El usuario es obligatorio"]
         },
 
         event: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Event",
-            required: true
+            required: [true, "El evento es obligatorio"]
         },
 
         status: {
@@ -22,13 +22,13 @@ const ticketSchema = new mongoose.Schema(
 
         quantity: {
             type: Number,
-            required: true,
+            required: [true, "La cantidad es obligatoria"],
             min: [1, "La cantidad debe ser mayor que cero"]
         },
 
         reservationCode: {
             type: String,
-            required: true,
+            required: [true, "El código de reserva es obligatorio"],
             unique: true,
             trim: true
         },

@@ -2,8 +2,8 @@ import Event from "../models/Event.js";
 
 class EventDAO {
 
-    // Obtener todos los eventos
-        async findAll(options = {}) {
+    // Obtener eventos con filtros, paginación y ordenamiento
+    async findAll(options = {}) {
 
         const {
             filters = {},
@@ -45,13 +45,13 @@ class EventDAO {
             .skip(skip)
             .limit(limit);
 
-       if (sort === "date") {
-        eventsQuery = eventsQuery.sort({ date: 1 });
+        if (sort === "date") {
+            eventsQuery = eventsQuery.sort({ date: 1 });
         }
 
-       if (sort === "-date") {
-       eventsQuery = eventsQuery.sort({ date: -1 });
-    }
+        if (sort === "-date") {
+            eventsQuery = eventsQuery.sort({ date: -1 });
+        }
 
         const [data, total] = await Promise.all([
             eventsQuery,
@@ -66,17 +66,25 @@ class EventDAO {
             totalPages: Math.ceil(total / limit)
         };
     }
+
     // Obtener un evento por ID
     async findById(id) {
         return await Event.findById(id);
     }
 
-    // Crear un nuevo evento
+    // Obtener eventos publicados
+    async findPublishedEvents() {
+        return await Event.find({
+            status: "published"
+        });
+    }
+
+    // Crear evento
     async create(eventData) {
         return await Event.create(eventData);
     }
 
-    // Actualizar un evento
+    // Actualizar evento
     async update(id, eventData) {
         return await Event.findByIdAndUpdate(
             id,
@@ -88,7 +96,7 @@ class EventDAO {
         );
     }
 
-        // Cambiar estado de un evento
+    // Cambiar estado de un evento
     async updateStatus(id, status) {
         return await Event.findByIdAndUpdate(
             id,
@@ -99,8 +107,11 @@ class EventDAO {
             }
         );
     }
-    
 
+    // Eliminar evento
+    async delete(id) {
+        return await Event.findByIdAndDelete(id);
+    }
 }
 
 export default new EventDAO();

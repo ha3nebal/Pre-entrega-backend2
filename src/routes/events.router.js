@@ -18,37 +18,32 @@ import { authorize } from "../middlewares/authorize.middleware.js";
 
 const router = Router();
 
-/**
- * Obtener todos los eventos
- */
+
+// Obtener todos los eventos
 router.get("/", getEvents);
 
-/**
- * Obtener un evento por ID
- */
+
+// Obtener un evento por ID
 router.get("/:id", getEvent);
 
-/**
- * Registrar una inscripción en un evento
- */
+
+// Registrar una inscripción en un evento
 router.post(
     "/:eid/tickets",
     auth,
     createTicketController
 );
 
-/**
- * Obtener los tickets de un evento
- */
+
+// Obtener los tickets de un evento
 router.get(
     "/:eid/tickets",
     auth,
     getEventTicketsController
 );
 
-/**
- * Crear un nuevo evento
- */
+
+// Crear un nuevo evento
 router.post(
     "/",
     auth,
@@ -56,9 +51,8 @@ router.post(
     createNewEvent
 );
 
-/**
- * Actualizar un evento existente
- */
+
+// Actualizar un evento existente
 router.put(
     "/:id",
     auth,
@@ -66,11 +60,14 @@ router.put(
     updateExistingEvent
 );
 
+
+// Actualizar el estado de un evento
 router.patch(
     "/:id/status",
     auth,
     authorize("organizer", "admin"),
     updateEventStatusController
 );
+
 
 export default router;
