@@ -31,6 +31,8 @@ export const toTicketDTO = (ticket) => {
         user,
         event,
         status: ticket.status,
+        quantity: ticket.quantity,
+        reservationCode: ticket.reservationCode,
         createdAt: ticket.createdAt,
         updatedAt: ticket.updatedAt
     };

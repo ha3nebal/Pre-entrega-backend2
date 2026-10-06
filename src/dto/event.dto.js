@@ -18,9 +18,23 @@ export const toEventDTO = (event) => {
 };
 
 export const toEventListDTO = (events) => {
-    if (!Array.isArray(events)) {
-        return [];
+    if (!events) {
+        return {
+            data: [],
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0
+        };
     }
 
-    return events.map(toEventDTO);
-};
+    return {
+        data: Array.isArray(events.data)
+            ? events.data.map(toEventDTO)
+            : [],
+        page: events.page,
+        limit: events.limit,
+        total: events.total,
+        totalPages: events.totalPages
+    };
+    };
