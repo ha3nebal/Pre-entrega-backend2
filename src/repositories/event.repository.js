@@ -6,8 +6,12 @@ class EventRepository {
         return await eventDAO.findAll(options);
     }
 
-    async getEventById(id) {
+    async findEventById(id) {
         return await eventDAO.findById(id);
+    }
+
+    async findPublishedEvents() {
+        return await eventDAO.findPublishedEvents();
     }
 
     async createEvent(eventData) {
@@ -22,6 +26,9 @@ class EventRepository {
         return await eventDAO.updateStatus(id, status);
     }
 
+    async deleteEvent(id) {
+        return await eventDAO.delete(id);
+    }
 }
 
 export default new EventRepository();

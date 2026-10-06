@@ -20,31 +20,41 @@ const forbiddenError = (message) => {
     return error;
 };
 
-export const createTicket = async (eventId, quantity, user) => {
+export const createTicket = async (
+    eventId,
+    quantity,
+    user
+) => {
+
     // 1. Verificar que el evento exista
-    const event = await eventRepository.getEventById(eventId);
+    const event = await eventRepository.findEventById(eventId);
 
     if (!event) {
         throw notFoundError("Evento no encontrado.");
     }
 
-  // 2. Verificar estado del evento
-if (["cancelled", "finished"].includes(event.status)) {
-    throw validationError(
-        "No se puede realizar una inscripción en un evento cancelado o finalizado."
-    );
-}
+    // 2. Verificar estado del evento
+    if (
+        ["cancelled", "finished"].includes(event.status)
+    ) {
+        throw validationError(
+            "No se puede realizar una inscripción en un evento cancelado o finalizado."
+        );
+    }
 
-if (event.status !== "published") {
-    throw validationError(
-        "Solo se puede realizar una inscripción en eventos publicados."
-    );
-}
+    if (event.status !== "published") {
+        throw validationError(
+            "Solo se puede realizar una inscripción en eventos publicados."
+        );
+    }
 
     // 3. Validar cantidad
     const parsedQuantity = Number(quantity);
 
-    if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0) {
+    if (
+        !Number.isInteger(parsedQuantity) ||
+        parsedQuantity <= 0
+    ) {
         throw validationError(
             "La cantidad debe ser un número entero mayor que cero."
         );
@@ -63,12 +73,15 @@ if (event.status !== "published") {
         );
     }
 
-    // 5. Contar cupos actualmente ocupados
+    // 5. Contar los cupos actualmente ocupados
     const occupiedCapacity =
-        await ticketRepository.countActiveTicketsByEvent(eventId);
+        await ticketRepository.countActiveTicketsByEvent(
+            eventId
+        );
 
     // 6. Verificar capacidad disponible
-    const availableCapacity = event.capacity - occupiedCapacity;
+    const availableCapacity =
+        event.capacity - occupiedCapacity;
 
     if (availableCapacity < parsedQuantity) {
         throw validationError(
@@ -76,40 +89,50 @@ if (event.status !== "published") {
         );
     }
 
-    // 7. Crear ticket
-    const reservationCode = `RES-${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2, 8)
-        .toUpperCase()}`;
+    // 7. Generar código de reserva
+    const reservationCode =
+        `RES-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 8)
+            .toUpperCase()}`;
 
-    const ticket = await ticketRepository.createTicket({
-    user: user.id,
-    event: eventId,
-    status: "confirmed",
-    quantity: parsedQuantity,
-    reservationCode
-});
+    // 8. Crear ticket
+    const ticket =
+        await ticketRepository.createTicket({
+            user: user.id,
+            event: eventId,
+            status: "confirmed",
+            quantity: parsedQuantity,
+            reservationCode
+        });
 
-await sendTicketConfirmationEmail({
-    to: user.email,
-    eventTitle: event.title,
-    eventDate: event.date,
-    eventLocation: event.location,
-    quantity: parsedQuantity,
-    reservationCode
-});
+    // 9. Enviar correo de confirmación
+    await sendTicketConfirmationEmail({
+        to: user.email,
+        eventTitle: event.title,
+        eventDate: event.date,
+        eventLocation: event.location,
+        quantity: parsedQuantity,
+        reservationCode
+    });
 
-return ticket;
-
+    return ticket;
 };
 
 export const getMyTickets = async (userId) => {
-    return await ticketRepository.getTicketsByUser(userId);
+    return await ticketRepository.getTicketsByUser(
+        userId
+    );
 };
 
-export const getEventTickets = async (eventId, user) => {
+export const getEventTickets = async (
+    eventId,
+    user
+) => {
+
     // Verificar que el evento exista
-    const event = await eventRepository.getEventById(eventId);
+    const event =
+        await eventRepository.findEventById(eventId);
 
     if (!event) {
         throw notFoundError("Evento no encontrado.");
@@ -117,7 +140,9 @@ export const getEventTickets = async (eventId, user) => {
 
     // Admin puede consultar cualquier evento
     if (user.role === "admin") {
-        return await ticketRepository.getTicketsByEvent(eventId);
+        return await ticketRepository.getTicketsByEvent(
+            eventId
+        );
     }
 
     // Organizer solo puede consultar sus propios eventos
@@ -130,12 +155,19 @@ export const getEventTickets = async (eventId, user) => {
         );
     }
 
-    return await ticketRepository.getTicketsByEvent(eventId);
+    return await ticketRepository.getTicketsByEvent(
+        eventId
+    );
 };
 
-export const cancelTicket = async (ticketId, user) => {
+export const cancelTicket = async (
+    ticketId,
+    user
+) => {
+
     // Buscar ticket
-    const ticket = await ticketRepository.getTicketById(ticketId);
+    const ticket =
+        await ticketRepository.getTicketById(ticketId);
 
     if (!ticket) {
         throw notFoundError("Ticket no encontrado.");
@@ -143,12 +175,21 @@ export const cancelTicket = async (ticketId, user) => {
 
     // No permitir cancelar dos veces
     if (ticket.status === "cancelled") {
-        throw validationError("El ticket ya se encuentra cancelado.");
+        throw validationError(
+            "El ticket ya se encuentra cancelado."
+        );
     }
 
     // El dueño o un administrador pueden cancelar
-    const isOwner = ticket.user.toString() === user.id;
-    const isAdmin = user.role === "admin";
+    const ticketUserId =
+        ticket.user?._id?.toString() ||
+        ticket.user?.toString();
+
+    const isOwner =
+        ticketUserId === user.id.toString();
+
+    const isAdmin =
+        user.role === "admin";
 
     if (!isOwner && !isAdmin) {
         throw forbiddenError(
@@ -156,5 +197,7 @@ export const cancelTicket = async (ticketId, user) => {
         );
     }
 
-    return await ticketRepository.cancelTicket(ticketId);
+    return await ticketRepository.cancelTicket(
+        ticketId
+    );
 };

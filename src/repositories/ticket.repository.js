@@ -1,6 +1,7 @@
 import ticketDAO from "../dao/TicketDAO.js";
 
 class TicketRepository {
+
     async createTicket(ticketData) {
         return await ticketDAO.create(ticketData);
     }
@@ -10,7 +11,10 @@ class TicketRepository {
     }
 
     async getActiveTicketByUserAndEvent(userId, eventId) {
-        return await ticketDAO.findActiveByUserAndEvent(userId, eventId);
+        return await ticketDAO.findActiveByUserAndEvent(
+            userId,
+            eventId
+        );
     }
 
     async getTicketsByUser(userId) {
@@ -27,6 +31,13 @@ class TicketRepository {
 
     async cancelTicket(id) {
         return await ticketDAO.cancel(id);
+    }
+
+    async updateTicket(id, ticketData) {
+        return await ticketDAO.update(
+            id,
+            ticketData
+        );
     }
 }
 

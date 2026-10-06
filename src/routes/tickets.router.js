@@ -9,8 +9,21 @@ import { auth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.get("/my-tickets", auth, getMyTicketsController);
 
-router.patch("/:tid/cancel", auth, cancelTicketController);
+// Obtener los tickets del usuario autenticado
+router.get(
+    "/my-tickets",
+    auth,
+    getMyTicketsController
+);
+
+
+// Cancelar un ticket
+router.patch(
+    "/:tid/cancel",
+    auth,
+    cancelTicketController
+);
+
 
 export default router;

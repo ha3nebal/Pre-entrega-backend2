@@ -7,7 +7,6 @@ const validationError = (message) => {
 };
 
 export const getAllEvents = async (query = {}) => {
-
     const {
         status,
         category,
@@ -33,33 +32,35 @@ export const getAllEvents = async (query = {}) => {
         limit: Number(limit),
         sort
     });
+};
 
+export const getPublishedEvents = async () => {
+    return await eventRepository.findPublishedEvents();
 };
 
 export const getEventById = async (id) => {
+    const event = await eventRepository.findEventById(id);
 
-    const event = await eventRepository.getEventById(id);
+    if (!event) {
+        const error = new Error("Evento no encontrado.");
+        error.statusCode = 404;
+        throw error;
+    }
 
-   if (!event) {
-    const error = new Error("Evento no encontrado.");
-    error.statusCode = 404;
-    throw error;
-}
     return event;
-
 };
 
 export const createEvent = async (eventData, user) => {
 
-    if (!eventData.title) {
+    if (!eventData.title || !eventData.title.trim()) {
         throw validationError("El título es obligatorio.");
     }
 
-    if (!eventData.description) {
+    if (!eventData.description || !eventData.description.trim()) {
         throw validationError("La descripción es obligatoria.");
     }
 
-    if (!eventData.category) {
+    if (!eventData.category || !eventData.category.trim()) {
         throw validationError("La categoría es obligatoria.");
     }
 
@@ -67,26 +68,41 @@ export const createEvent = async (eventData, user) => {
         throw validationError("La fecha es obligatoria.");
     }
 
-    if (!eventData.location) {
+    if (!eventData.location || !eventData.location.trim()) {
         throw validationError("La ubicación es obligatoria.");
     }
 
-    if (eventData.capacity === undefined || eventData.capacity <= 0) {
-        throw validationError("La capacidad debe ser mayor que cero.");
+    if (
+        eventData.capacity === undefined ||
+        eventData.capacity === null ||
+        eventData.capacity <= 0
+    ) {
+        throw validationError(
+            "La capacidad debe ser mayor que cero."
+        );
     }
 
-    if (eventData.price === undefined || eventData.price < 0) {
-        throw validationError("El precio no puede ser negativo.");
+    if (
+        eventData.price === undefined ||
+        eventData.price < 0
+    ) {
+        throw validationError(
+            "El precio no puede ser negativo."
+        );
     }
 
     const eventDate = new Date(eventData.date);
 
     if (Number.isNaN(eventDate.getTime())) {
-        throw validationError("La fecha del evento no es válida.");
+        throw validationError(
+            "La fecha del evento no es válida."
+        );
     }
 
     if (eventDate <= new Date()) {
-        throw validationError("La fecha del evento debe ser futura.");
+        throw validationError(
+            "La fecha del evento debe ser futura."
+        );
     }
 
     const newEventData = {
@@ -94,31 +110,32 @@ export const createEvent = async (eventData, user) => {
         organizer: user.id
     };
 
+    // El estado inicial no puede ser manipulado
+    // desde la creación pública del evento.
     delete newEventData.status;
 
     return await eventRepository.createEvent(newEventData);
-
 };
 
 export const updateEvent = async (id, eventData, user) => {
 
-    const event = await eventRepository.getEventById(id);
+    const event = await eventRepository.findEventById(id);
 
     if (!event) {
-    const error = new Error("Evento no encontrado.");
-    error.statusCode = 404;
-    throw error;
-}
+        const error = new Error("Evento no encontrado.");
+        error.statusCode = 404;
+        throw error;
+    }
 
     if (event.status === "cancelled") {
-    const error = new Error(
-        "Un evento cancelado no puede ser modificado."
-    );
+        const error = new Error(
+            "Un evento cancelado no puede ser modificado."
+        );
 
-    error.statusCode = 400;
+        error.statusCode = 400;
+        throw error;
+    }
 
-    throw error;
-}
     if (
         user.role !== "admin" &&
         event.organizer.toString() !== user.id
@@ -128,12 +145,14 @@ export const updateEvent = async (id, eventData, user) => {
         );
 
         error.statusCode = 403;
-
         throw error;
     }
 
-     const updateData = { ...eventData };
+    const updateData = {
+        ...eventData
+    };
 
+    // Estos campos no pueden modificarse mediante PUT.
     delete updateData.organizer;
     delete updateData.status;
 
@@ -141,14 +160,18 @@ export const updateEvent = async (id, eventData, user) => {
         updateData.capacity !== undefined &&
         updateData.capacity <= 0
     ) {
-        throw validationError("La capacidad debe ser mayor que cero.");
+        throw validationError(
+            "La capacidad debe ser mayor que cero."
+        );
     }
 
     if (
         updateData.price !== undefined &&
         updateData.price < 0
     ) {
-        throw validationError("El precio no puede ser negativo.");
+        throw validationError(
+            "El precio no puede ser negativo."
+        );
     }
 
     if (updateData.date !== undefined) {
@@ -156,27 +179,37 @@ export const updateEvent = async (id, eventData, user) => {
         const eventDate = new Date(updateData.date);
 
         if (Number.isNaN(eventDate.getTime())) {
-            throw validationError("La fecha del evento no es válida.");
+            throw validationError(
+                "La fecha del evento no es válida."
+            );
         }
 
         if (eventDate <= new Date()) {
-            throw validationError("La fecha del evento debe ser futura.");
+            throw validationError(
+                "La fecha del evento debe ser futura."
+            );
         }
     }
 
-    return await eventRepository.updateEvent(id, updateData);
-
+    return await eventRepository.updateEvent(
+        id,
+        updateData
+    );
 };
 
-export const updateEventStatus = async (id, status, user) => {
+export const updateEventStatus = async (
+    id,
+    status,
+    user
+) => {
 
-    const event = await eventRepository.getEventById(id);
+    const event = await eventRepository.findEventById(id);
 
-   if (!event) {
-    const error = new Error("Evento no encontrado.");
-    error.statusCode = 404;
-    throw error;
-}
+    if (!event) {
+        const error = new Error("Evento no encontrado.");
+        error.statusCode = 404;
+        throw error;
+    }
 
     if (
         user.role !== "admin" &&
@@ -187,22 +220,29 @@ export const updateEventStatus = async (id, status, user) => {
         );
 
         error.statusCode = 403;
-
         throw error;
     }
 
     if (event.status === "cancelled") {
-    const error = new Error(
-        "Un evento cancelado no puede cambiar de estado."
-    );
+        const error = new Error(
+            "Un evento cancelado no puede cambiar de estado."
+        );
 
-    error.statusCode = 400;
+        error.statusCode = 400;
+        throw error;
+    }
 
-    throw error;
-}
-
-    if (!["draft", "published", "cancelled", "finished"].includes(status)) {
-        throw validationError("Estado de evento no válido.");
+    if (
+        ![
+            "draft",
+            "published",
+            "cancelled",
+            "finished"
+        ].includes(status)
+    ) {
+        throw validationError(
+            "Estado de evento no válido."
+        );
     }
 
     if (
@@ -214,5 +254,21 @@ export const updateEventStatus = async (id, status, user) => {
         );
     }
 
-    return await eventRepository.updateEventStatus(id, status);
+    return await eventRepository.updateEventStatus(
+        id,
+        status
+    );
+};
+
+export const deleteEvent = async (id) => {
+
+    const event = await eventRepository.findEventById(id);
+
+    if (!event) {
+        const error = new Error("Evento no encontrado.");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return await eventRepository.deleteEvent(id);
 };
